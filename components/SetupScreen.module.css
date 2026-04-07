@@ -67,10 +67,20 @@
 
 .sectionBody { flex: 1; display: flex; flex-direction: column; gap: 14px; }
 
+.sectionTitleRow {
+  display: flex; align-items: center; gap: 8px;
+}
 .sectionTitle {
   font-size: 13px; font-weight: 600; letter-spacing: 0.08em;
   color: #000; text-transform: uppercase;
 }
+.infoBtn {
+  background: transparent; border: none; padding: 0;
+  font-size: 14px; color: #ccc; cursor: pointer;
+  line-height: 1; transition: color 0.15s; flex-shrink: 0;
+  font-family: inherit;
+}
+.infoBtn:hover { color: #000; }
 .sectionHint {
   font-size: 11px; color: #999; line-height: 1.6; letter-spacing: 0.02em;
   margin-top: -6px;

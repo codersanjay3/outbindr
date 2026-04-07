@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import DropZone from './DropZone'
 import AudioPitchRecorder from './AudioPitchRecorder'
 import KeySetupModal from './KeySetupModal'
+import PanelGuideModal from './PanelGuideModal'
 import type { SimConfig, Panelist } from '@/lib/types'
 import type { StoredKeys } from '@/lib/keys'
 import type { SetupState } from '@/lib/supabase-sessions'
@@ -24,6 +25,7 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
   const [parsing, setParsing]       = useState(false)
   const [parseError, setParseError] = useState('')
   const [showKeys, setShowKeys]     = useState(false)
+  const [showGuide, setShowGuide]   = useState(false)
 
   // ── Hydration-safe key loading ──────────────────────────────────────────
   const [mounted, setMounted] = useState(false)
@@ -106,6 +108,10 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
         <KeySetupModal onClose={() => { setShowKeys(false); refreshKeys() }} />
       )}
 
+      {showGuide && (
+        <PanelGuideModal onClose={() => setShowGuide(false)} />
+      )}
+
       {/* ── Top bar ── */}
       <div className={styles.topBar}>
         <div className={styles.wordmark}>
@@ -128,7 +134,15 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
         <section className={styles.section}>
           <div className={styles.sectionNum}>01</div>
           <div className={styles.sectionBody}>
-            <div className={styles.sectionTitle}>Configure Your Panel</div>
+            <div className={styles.sectionTitleRow}>
+              <div className={styles.sectionTitle}>Configure Your Panel</div>
+              <button
+                className={styles.infoBtn}
+                onClick={() => setShowGuide(true)}
+                title="Panel document guide"
+                aria-label="Open panel document guide"
+              >ⓘ</button>
+            </div>
             <div className={styles.sectionHint}>
               Upload a document describing your evaluators — names, roles, personalities, criteria
             </div>
