@@ -91,6 +91,7 @@
 }
 .badgeDone   { background: #000; color: #fff; }
 .badgeActive { background: #f0f0f0; color: #555; border: 1px solid #ddd; }
+.badgeDraft  { background: #fff; color: #bbb; border: 1px dashed #ddd; }
 
 .sessionMeta {
   font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #888;

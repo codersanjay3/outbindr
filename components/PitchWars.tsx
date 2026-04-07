@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import SetupScreen from './SetupScreen'
 import SimScreen from './SimScreen'
 import VerdictScreen from './VerdictScreen'
-import { createDraftSession, createSession, saveProgress, completeSession, saveSetupState } from '@/lib/supabase-sessions'
+import { createDraftSession, createSession, saveProgress, completeSession, saveSetupState, deleteSession } from '@/lib/supabase-sessions'
 import type { SetupState } from '@/lib/supabase-sessions'
 import type { SimConfig, Verdict, Message } from '@/lib/types'
 
@@ -92,6 +92,15 @@ export default function PitchWars({
     setPhase('verdict')
   }
 
+  const handleBack = () => {
+    // If the draft was never launched (phase stayed on setup), delete it to keep dashboard clean
+    if (phase === 'setup' && sessionIdRef.current) {
+      deleteSession(sessionIdRef.current).catch(() => {})
+      sessionIdRef.current = null
+    }
+    onBackToDashboard?.()
+  }
+
   const handleRestart = () => {
     if (onBackToDashboard) {
       onBackToDashboard()
@@ -109,7 +118,7 @@ export default function PitchWars({
       {phase === 'setup' && (
         <SetupScreen
           onLaunch={handleLaunch}
-          onBack={onBackToDashboard}
+          onBack={handleBack}
           onAutoSave={handleAutoSave}
         />
       )}

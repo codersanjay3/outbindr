@@ -248,6 +248,28 @@
 }
 .sendBtn:hover { background: #333; }
 
+/* ── Interrupted card ── */
+.interruptedCard {
+  width: 100%; max-width: 660px;
+  background: #fff; border: 1.5px solid #000;
+  border-radius: 10px; padding: 20px 24px;
+  animation: cardIn 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.interruptedHeader {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding-bottom: 12px; border-bottom: 1px solid #f0f0f0;
+}
+.interruptedLeft { display: flex; align-items: flex-start; gap: 10px; }
+.interruptedIcon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.interruptedTitle {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+  color: #000; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 3px;
+}
+.interruptedSub {
+  font-size: 10px; color: #888; font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.02em;
+}
+
 /* ── Rapid-fire card ── */
 .rfCard {
   width: 100%; max-width: 660px;

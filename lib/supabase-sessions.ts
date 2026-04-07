@@ -30,7 +30,7 @@ export async function getSessions(): Promise<SessionRow[]> {
     .from('sessions')
     .select('*')
     .order('updated_at', { ascending: false })
-    .limit(3)
+    .limit(20)
   if (error) throw error
   return (data ?? []) as SessionRow[]
 }

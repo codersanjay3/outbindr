@@ -20,6 +20,7 @@ interface Props {
 type Phase =
   | 'thinking'      // deliberating + awaiting stream
   | 'speaking'      // streaming text + TTS
+  | 'interrupted'   // user cut in — waiting for their response
   | 'round-turn'    // all panelists done — show summary + user input
   | 'rapid-fire'    // collaborative follow-up questions
   | 'report'        // generating final verdict
@@ -54,29 +55,37 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
   const [paused, setPaused]                 = useState(false)
   const [responseMode, setResponseMode]     = useState<'type' | 'voice'>('type')
 
+  // Interrupt response state
+  const [interruptedBy, setInterruptedBy]       = useState<Panelist | null>(null)
+  const [interruptReply, setInterruptReply]     = useState('')
+  const [interruptMode, setInterruptMode]       = useState<'type' | 'voice'>('type')
+
   // Rapid-fire state
-  const [rapidFireQs, setRapidFireQs]         = useState<RapidFireQ[]>([])
-  const [rfIndex, setRfIndex]                 = useState(0)
-  const [rfAnswer, setRfAnswer]               = useState('')
-  const [rfAnswerMode, setRfAnswerMode]       = useState<'type' | 'voice'>('type')
-  const [rfLoading, setRfLoading]             = useState(false)
+  const [rapidFireQs, setRapidFireQs]     = useState<RapidFireQ[]>([])
+  const [rfIndex, setRfIndex]             = useState(0)
+  const [rfAnswer, setRfAnswer]           = useState('')
+  const [rfAnswerMode, setRfAnswerMode]   = useState<'type' | 'voice'>('type')
+  const [rfLoading, setRfLoading]         = useState(false)
 
   // ── Stable refs ────────────────────────────────────────────────────────────
-  const historyRef          = useRef<Message[]>(initialHistory ?? [])
-  const ideaRef             = useRef('')
-  const ideaB64Ref          = useRef('')
-  const ideaMimeRef         = useRef('')
-  const pausedRef           = useRef(false)
-  const interruptRef        = useRef(false)
-  const abortRef            = useRef<AbortController | null>(null)
-  const resolveUserTurnRef  = useRef<((reply: string) => void) | null>(null)
-  const resolveRapidFireRef = useRef<(() => void) | null>(null)
-  const userReplyRef        = useRef('')
-  const rfAnswerRef         = useRef('')
-  const currentRoundRef     = useRef(initialRound ?? 0)
+  const historyRef            = useRef<Message[]>(initialHistory ?? [])
+  const ideaRef               = useRef('')
+  const ideaB64Ref            = useRef('')
+  const ideaMimeRef           = useRef('')
+  const pausedRef             = useRef(false)
+  const interruptRef          = useRef(false)
+  const abortRef              = useRef<AbortController | null>(null)
+  const resolveUserTurnRef    = useRef<((reply: string) => void) | null>(null)
+  const resolveInterruptRef   = useRef<((reply: string) => void) | null>(null)
+  const resolveRapidFireRef   = useRef<(() => void) | null>(null)
+  const userReplyRef          = useRef('')
+  const interruptReplyRef     = useRef('')
+  const rfAnswerRef           = useRef('')
+  const currentRoundRef       = useRef(initialRound ?? 0)
 
   useEffect(() => { pausedRef.current = paused }, [paused])
   useEffect(() => { userReplyRef.current = userReply }, [userReply])
+  useEffect(() => { interruptReplyRef.current = interruptReply }, [interruptReply])
   useEffect(() => { rfAnswerRef.current = rfAnswer }, [rfAnswer])
   useEffect(() => { currentRoundRef.current = currentRound }, [currentRound])
 
@@ -103,6 +112,9 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
   const waitForUserTurn = (): Promise<string> =>
     new Promise(resolve => { resolveUserTurnRef.current = resolve })
 
+  const waitForInterruptResponse = (): Promise<string> =>
+    new Promise(resolve => { resolveInterruptRef.current = resolve })
+
   const waitForRapidFireDone = (): Promise<void> =>
     new Promise(resolve => { resolveRapidFireRef.current = resolve })
 
@@ -111,18 +123,21 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
     resolveUserTurnRef.current?.(reply)
     resolveUserTurnRef.current = null
     setUserReply('')
-    if (onProgress) {
-      onProgress(historyRef.current, currentRoundRef.current)
-    }
+    if (onProgress) onProgress(historyRef.current, currentRoundRef.current)
   }, [onProgress])
+
+  const handleInterruptSubmit = useCallback(() => {
+    const reply = interruptReplyRef.current.trim()
+    resolveInterruptRef.current?.(reply)
+    resolveInterruptRef.current = null
+    setInterruptReply('')
+  }, [])
 
   const handleRfSubmit = useCallback(() => {
     const answer = rfAnswerRef.current.trim()
     setRfAnswer('')
-
     setRapidFireQs(prev => {
       const next = rfIndex + 1
-      // Record answer in history
       if (answer) {
         historyRef.current.push({
           role: 'user',
@@ -132,7 +147,6 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
         })
       }
       if (next >= prev.length) {
-        // All rapid-fire done
         resolveRapidFireRef.current?.()
         resolveRapidFireRef.current = null
       } else {
@@ -146,6 +160,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
     interruptRef.current = true
     cancelCurrentTTS()
     abortRef.current?.abort()
+    // Phase transition to 'interrupted' happens in run() after stream abort
   }, [])
 
   /** Light up a graph edge when one panelist mentions another */
@@ -165,7 +180,6 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
     })
   }, [panelists])
 
-  /** Pull the clearest question sentence from a panelist turn */
   const extractQuestion = (text: string): string => {
     const sentences = text.match(/[^.!?]+[.!?]+/g) || [text]
     const q = [...sentences].reverse().find(s => s.includes('?'))
@@ -216,12 +230,9 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
               method: 'POST',
               headers: apiHeaders(keys),
               body: JSON.stringify({
-                panelist: p,
-                allPanelists: panelists,
-                ideaText: ideaRef.current,
-                history: historyRef.current,
-                round: r,
-                totalRounds: rounds,
+                panelist: p, allPanelists: panelists,
+                ideaText: ideaRef.current, history: historyRef.current,
+                round: r, totalRounds: rounds,
               }),
             })
             const { deliberation } = await dr.json()
@@ -229,8 +240,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
               historyRef.current.push({
                 role: 'assistant',
                 content: `[Internal deliberation by ${p.name}]: ${deliberation}`,
-                speaker: p.name,
-                round: r,
+                speaker: p.name, round: r,
               })
             }
           } catch { /* silently skip */ }
@@ -246,8 +256,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
             headers: apiHeaders(keys),
             signal: abortRef.current.signal,
             body: JSON.stringify({
-              panelist: p,
-              allPanelists: panelists,
+              panelist: p, allPanelists: panelists,
               ideaText: ideaRef.current,
               ideaBase64:   ideaB64Ref.current  || undefined,
               ideaMimeType: ideaMimeRef.current || undefined,
@@ -256,50 +265,55 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
             }),
           })
         } catch (e) {
-          if (e instanceof Error && e.name === 'AbortError') continue
-          throw e
+          if (e instanceof Error && e.name === 'AbortError') {
+            // Will handle after this block
+          } else { throw e }
+          res = null as unknown as Response
         }
 
-        const reader  = res.body!.getReader()
-        const decoder = new TextDecoder()
-        let fullText  = ''
-        let ttsBuf    = ''
+        let fullText = ''
 
-        const flushSentences = async (buf: string): Promise<string> => {
-          if (interruptRef.current) return buf
-          const { sentences, remainder } = extractCompleteSentences(buf)
-          for (const s of sentences) {
-            if (interruptRef.current) break
-            setSubtitle(s)
-            await speakSentence(s, p.voiceId, p.webSpeechVoice, keys.elevenlabs || null,
+        if (res) {
+          const reader  = res.body!.getReader()
+          const decoder = new TextDecoder()
+          let ttsBuf    = ''
+
+          const flushSentences = async (buf: string): Promise<string> => {
+            if (interruptRef.current) return buf
+            const { sentences, remainder } = extractCompleteSentences(buf)
+            for (const s of sentences) {
+              if (interruptRef.current) break
+              setSubtitle(s)
+              await speakSentence(s, p.voiceId, p.webSpeechVoice, keys.elevenlabs || null,
+                p.webSpeechPitch, p.webSpeechRate)
+              await waitIfPaused()
+            }
+            return remainder
+          }
+
+          setPhase('speaking')
+          try {
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
+              const chunk = decoder.decode(value)
+              fullText += chunk
+              ttsBuf   += chunk
+              setStreamingText(fullText)
+              detectEdges(p.name, fullText)
+              if (!interruptRef.current) ttsBuf = await flushSentences(ttsBuf)
+            }
+          } catch (e) {
+            if (!(e instanceof Error && e.name === 'AbortError')) throw e
+          }
+
+          if (!interruptRef.current && ttsBuf.trim()) {
+            setSubtitle(ttsBuf.trim())
+            await speakSentence(ttsBuf.trim(), p.voiceId, p.webSpeechVoice, keys.elevenlabs || null,
               p.webSpeechPitch, p.webSpeechRate)
-            await waitIfPaused()
           }
-          return remainder
+          setSubtitle('')
         }
-
-        setPhase('speaking')
-        try {
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            const chunk = decoder.decode(value)
-            fullText += chunk
-            ttsBuf   += chunk
-            setStreamingText(fullText)
-            detectEdges(p.name, fullText)
-            if (!interruptRef.current) ttsBuf = await flushSentences(ttsBuf)
-          }
-        } catch (e) {
-          if (!(e instanceof Error && e.name === 'AbortError')) throw e
-        }
-
-        if (!interruptRef.current && ttsBuf.trim()) {
-          setSubtitle(ttsBuf.trim())
-          await speakSentence(ttsBuf.trim(), p.voiceId, p.webSpeechVoice, keys.elevenlabs || null,
-            p.webSpeechPitch, p.webSpeechRate)
-        }
-        setSubtitle('')
 
         if (fullText) {
           historyRef.current.push({ role: 'assistant', content: fullText, speaker: p.name, round: r })
@@ -308,6 +322,35 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
             bg: p.bg, bd: p.bd, text: fullText, round: r,
           }])
           roundQs.push({ name: p.name, avatar: p.avatar, color: p.color, question: extractQuestion(fullText) })
+        }
+
+        // ── STEP 3: If interrupted, let user respond immediately ─────────────
+        if (interruptRef.current) {
+          setInterruptedBy(p)
+          setInterruptReply('')
+          setInterruptMode('type')
+          setPhase('interrupted')
+
+          const iReply = await waitForInterruptResponse()
+
+          if (iReply.trim()) {
+            historyRef.current.push({
+              role: 'user',
+              content: `[Interrupts ${p.name}]: ${iReply}`,
+              speaker: 'You',
+              round: r,
+            })
+            setHistoryMsgs(prev => [...prev, {
+              speaker: 'You', avatar: '💬', color: '#888',
+              bg: '#f5f5f5', bd: '#e0e0e0',
+              text: iReply, round: r, isUser: true,
+            }])
+          }
+
+          interruptRef.current = false
+          setInterruptedBy(null)
+          setPhase('thinking')
+          if (onProgress) onProgress(historyRef.current, r)
         }
 
         await new Promise(res => setTimeout(res, 400))
@@ -344,8 +387,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
           body: JSON.stringify({
             panelists,
             history: historyRef.current.slice(-16),
-            round: r,
-            totalRounds: rounds,
+            round: r, totalRounds: rounds,
           }),
         })
         const { questions } = await rfRes.json()
@@ -381,6 +423,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
   const isSpeaking   = phase === 'speaking'
   const isThinking   = phase === 'thinking'
   const isRoundTurn  = phase === 'round-turn'
+  const isInterrupted = phase === 'interrupted'
   const isRapidFire  = phase === 'rapid-fire'
   const isReport     = phase === 'report'
 
@@ -456,7 +499,6 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
       {/* ── Stage ── */}
       <div className={styles.stage}>
 
-        {/* Generating report */}
         {isReport && (
           <div className={styles.reportCard}>
             <span className={styles.spinner} />
@@ -464,7 +506,6 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
           </div>
         )}
 
-        {/* Rapid-fire loading */}
         {rfLoading && (
           <div className={styles.reportCard}>
             <span className={styles.spinner} />
@@ -472,7 +513,81 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
           </div>
         )}
 
-        {/* Round turn — summary of questions + user response input */}
+        {/* ── Interrupted — user speaks back ── */}
+        {isInterrupted && interruptedBy && (
+          <div className={styles.interruptedCard}>
+            <div className={styles.interruptedHeader}>
+              <div className={styles.interruptedLeft}>
+                <span className={styles.interruptedIcon}>⚡</span>
+                <div>
+                  <div className={styles.interruptedTitle}>You cut in</div>
+                  <div className={styles.interruptedSub}>
+                    {interruptedBy.avatar} {interruptedBy.name} will hear you — respond or skip
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.responseModeToggle}>
+              <button
+                className={`${styles.responseModeBtn} ${interruptMode === 'type' ? styles.responseModeBtnOn : ''}`}
+                onClick={() => setInterruptMode('type')}
+              >TYPE</button>
+              <button
+                className={`${styles.responseModeBtn} ${interruptMode === 'voice' ? styles.responseModeBtnOn : ''}`}
+                onClick={() => setInterruptMode('voice')}
+              >VOICE</button>
+            </div>
+
+            {interruptMode === 'type' ? (
+              <>
+                <textarea
+                  className={styles.userTextarea}
+                  value={interruptReply}
+                  onChange={e => setInterruptReply(e.target.value)}
+                  placeholder="Say what's on your mind…"
+                  rows={3}
+                  autoFocus
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && (e.metaKey || e.shiftKey)) {
+                      e.preventDefault()
+                      handleInterruptSubmit()
+                    }
+                  }}
+                />
+                <div className={styles.userTurnActions}>
+                  <span className={styles.userTurnHint}>⌘↵ to submit</span>
+                  <div className={styles.userTurnBtns}>
+                    <button className={styles.skipBtn} onClick={() => { setInterruptReply(''); handleInterruptSubmit() }}>
+                      Skip →
+                    </button>
+                    <button className={styles.sendBtn} onClick={handleInterruptSubmit}>
+                      Speak up →
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className={styles.voiceResponseWrap}>
+                <AudioPitchRecorder
+                  groqKey={loadKeys().groq}
+                  onTranscript={t => setInterruptReply(t)}
+                />
+                {interruptReply && (
+                  <div className={styles.userTurnActions} style={{ marginTop: 12 }}>
+                    <span className={styles.userTurnHint}>{interruptReply.split(/\s+/).length} words</span>
+                    <div className={styles.userTurnBtns}>
+                      <button className={styles.skipBtn} onClick={() => { setInterruptReply(''); handleInterruptSubmit() }}>Skip →</button>
+                      <button className={styles.sendBtn} onClick={handleInterruptSubmit}>Speak up →</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Round turn ── */}
         {isRoundTurn && (
           <div className={styles.roundTurnCard}>
             <div className={styles.roundTurnTitle}>
@@ -498,7 +613,6 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
                 Your response — answer their questions, raise new points, push back
               </div>
 
-              {/* Voice / Type toggle */}
               <div className={styles.responseModeToggle}>
                 <button
                   className={`${styles.responseModeBtn} ${responseMode === 'type' ? styles.responseModeBtnOn : ''}`}
@@ -529,34 +643,22 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
                   <div className={styles.userTurnActions}>
                     <span className={styles.userTurnHint}>⌘↵ or Shift↵ to submit</span>
                     <div className={styles.userTurnBtns}>
-                      <button
-                        className={styles.skipBtn}
-                        onClick={() => { setUserReply(''); handleUserSubmit() }}
-                      >
+                      <button className={styles.skipBtn} onClick={() => { setUserReply(''); handleUserSubmit() }}>
                         Skip round →
                       </button>
-                      <button className={styles.sendBtn} onClick={handleUserSubmit}>
-                        Submit →
-                      </button>
+                      <button className={styles.sendBtn} onClick={handleUserSubmit}>Submit →</button>
                     </div>
                   </div>
                 </>
               ) : (
                 <div className={styles.voiceResponseWrap}>
-                  <AudioPitchRecorder
-                    groqKey={loadKeys().groq}
-                    onTranscript={t => { setUserReply(t); }}
-                  />
+                  <AudioPitchRecorder groqKey={loadKeys().groq} onTranscript={t => setUserReply(t)} />
                   {userReply && (
                     <div className={styles.userTurnActions} style={{ marginTop: 12 }}>
                       <span className={styles.userTurnHint}>{userReply.split(/\s+/).length} words recorded</span>
                       <div className={styles.userTurnBtns}>
-                        <button className={styles.skipBtn} onClick={() => { setUserReply(''); handleUserSubmit() }}>
-                          Skip →
-                        </button>
-                        <button className={styles.sendBtn} onClick={handleUserSubmit}>
-                          Submit →
-                        </button>
+                        <button className={styles.skipBtn} onClick={() => { setUserReply(''); handleUserSubmit() }}>Skip →</button>
+                        <button className={styles.sendBtn} onClick={handleUserSubmit}>Submit →</button>
                       </div>
                     </div>
                   )}
@@ -566,7 +668,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
           </div>
         )}
 
-        {/* Rapid-fire questions */}
+        {/* ── Rapid-fire questions ── */}
         {isRapidFire && currentRfQ && (
           <div className={styles.rfCard}>
             <div className={styles.rfHeader}>
@@ -588,7 +690,6 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
               ))}
             </div>
 
-            {/* Answer mode toggle */}
             <div className={styles.responseModeToggle} style={{ marginBottom: 10 }}>
               <button
                 className={`${styles.responseModeBtn} ${rfAnswerMode === 'type' ? styles.responseModeBtnOn : ''}`}
@@ -628,10 +729,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
               </>
             ) : (
               <div className={styles.voiceResponseWrap}>
-                <AudioPitchRecorder
-                  groqKey={loadKeys().groq}
-                  onTranscript={t => setRfAnswer(t)}
-                />
+                <AudioPitchRecorder groqKey={loadKeys().groq} onTranscript={t => setRfAnswer(t)} />
                 {rfAnswer && (
                   <div className={styles.userTurnActions} style={{ marginTop: 12 }}>
                     <span className={styles.userTurnHint}>{rfAnswer.split(/\s+/).length} words</span>
@@ -648,8 +746,8 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
           </div>
         )}
 
-        {/* Active speaker spotlight */}
-        {!isRoundTurn && !isRapidFire && !isReport && !rfLoading && activePanelist && (
+        {/* ── Active speaker spotlight ── */}
+        {!isRoundTurn && !isInterrupted && !isRapidFire && !isReport && !rfLoading && activePanelist && (
           <div
             className={`${styles.speakerCard} ${isSpeaking ? styles.speakerCardActive : ''}`}
             style={{
@@ -658,7 +756,6 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
               '--pbd': activePanelist.bd,
             } as React.CSSProperties}
           >
-            {/* Header */}
             <div className={styles.speakerHeader}>
               <div className={styles.speakerAvatarWrap}>
                 <div
@@ -683,7 +780,6 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
               </div>
             </div>
 
-            {/* Content */}
             <div className={styles.speakerText}>
               {isThinking ? (
                 <div className={styles.dots}>

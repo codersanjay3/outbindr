@@ -2,12 +2,11 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { getSessions, createSession, deleteSession, type SessionRow } from '@/lib/supabase-sessions'
-import type { SimConfig } from '@/lib/types'
+import { getSessions, deleteSession, type SessionRow } from '@/lib/supabase-sessions'
 import styles from './Dashboard.module.css'
 
 interface Props {
-  onStartNew: () => void // navigate back to setup
+  onStartNew: () => void
 }
 
 function formatDate(iso: string) {
@@ -16,12 +15,23 @@ function formatDate(iso: string) {
   })
 }
 
-function StatusBadge({ status }: { status: 'in_progress' | 'completed' }) {
+function StatusBadge({ status, isDraft }: { status: 'in_progress' | 'completed'; isDraft: boolean }) {
+  if (isDraft) return <span className={`${styles.badge} ${styles.badgeDraft}`}>DRAFT</span>
   return (
     <span className={`${styles.badge} ${status === 'completed' ? styles.badgeDone : styles.badgeActive}`}>
       {status === 'completed' ? 'COMPLETED' : 'IN PROGRESS'}
     </span>
   )
+}
+
+/** A session is a "draft" if it was created on the setup screen but never launched */
+function isDraftSession(s: SessionRow) {
+  return !s.config?.panelists?.length
+}
+
+/** Real sessions = launched (have panelists configured) */
+function isRealSession(s: SessionRow) {
+  return !!s.config?.panelists?.length
 }
 
 export default function Dashboard({ onStartNew }: Props) {
@@ -42,7 +52,11 @@ export default function Dashboard({ onStartNew }: Props) {
     setLoading(true)
     try {
       const rows = await getSessions()
-      setSessions(rows)
+      // Silently remove stale drafts (no panelists, no history, older than 1 hour)
+      const stale = rows.filter(r => isDraftSession(r) && !r.history?.length &&
+        Date.now() - new Date(r.updated_at).getTime() > 60 * 60 * 1000)
+      await Promise.all(stale.map(r => deleteSession(r.id).catch(() => {})))
+      setSessions(rows.filter(r => !stale.find(s => s.id === r.id)))
     } catch (e) {
       console.error(e)
     } finally {
@@ -71,7 +85,9 @@ export default function Dashboard({ onStartNew }: Props) {
     router.push('/')
   }
 
-  const canStartNew = sessions.length < 3
+  // Only real (launched) sessions count toward the 3-session limit
+  const realSessions = sessions.filter(isRealSession)
+  const canStartNew  = realSessions.length < 3
 
   return (
     <div className={styles.wrap}>
@@ -89,8 +105,8 @@ export default function Dashboard({ onStartNew }: Props) {
           <div>
             <h1 className={styles.pageTitle}>Your Sessions</h1>
             <p className={styles.pageHint}>
-              {sessions.length}/3 sessions used
-              {sessions.length >= 3 && ' — delete a session to start a new one'}
+              {realSessions.length}/3 sessions used
+              {realSessions.length >= 3 && ' — delete a session to start a new one'}
             </p>
           </div>
           <button
@@ -106,7 +122,7 @@ export default function Dashboard({ onStartNew }: Props) {
           <div className={styles.loading}>
             <span className={styles.loadingDot} /><span className={styles.loadingDot} /><span className={styles.loadingDot} />
           </div>
-        ) : sessions.length === 0 ? (
+        ) : realSessions.length === 0 ? (
           <div className={styles.empty}>
             <div className={styles.emptyTitle}>No sessions yet</div>
             <div className={styles.emptyHint}>Start your first panel simulation</div>
@@ -114,71 +130,73 @@ export default function Dashboard({ onStartNew }: Props) {
           </div>
         ) : (
           <div className={styles.sessionList}>
-            {sessions.map((s, i) => (
-              <div
-                key={s.id}
-                className={`${styles.sessionCard} ${deleting === s.id ? styles.sessionDeleting : ''}`}
-                onClick={() => handleOpen(s)}
-              >
-                <div className={styles.sessionNum}>{String(i + 1).padStart(2, '0')}</div>
-                <div className={styles.sessionMain}>
-                  <div className={styles.sessionTop}>
-                    <div className={styles.sessionTitle}>{s.title ?? 'Untitled Pitch'}</div>
-                    <StatusBadge status={s.status} />
-                  </div>
-                  <div className={styles.sessionMeta}>
-                    <span>{s.config.panelists.length} panelists</span>
-                    <span>·</span>
-                    <span>{s.config.rounds} rounds</span>
-                    <span>·</span>
-                    <span>{formatDate(s.updated_at)}</span>
-                    {s.status === 'completed' && s.verdict && (
-                      <>
-                        <span>·</span>
-                        <span className={styles.sessionScore}>{s.verdict.totalScore}/100</span>
-                      </>
+            {realSessions.map((s, i) => {
+              const draft   = isDraftSession(s)
+              const panelists = s.config?.panelists ?? []
+              return (
+                <div
+                  key={s.id}
+                  className={`${styles.sessionCard} ${deleting === s.id ? styles.sessionDeleting : ''}`}
+                  onClick={() => handleOpen(s)}
+                >
+                  <div className={styles.sessionNum}>{String(i + 1).padStart(2, '0')}</div>
+                  <div className={styles.sessionMain}>
+                    <div className={styles.sessionTop}>
+                      <div className={styles.sessionTitle}>{s.title ?? 'Untitled Pitch'}</div>
+                      <StatusBadge status={s.status} isDraft={draft} />
+                    </div>
+                    <div className={styles.sessionMeta}>
+                      {panelists.length > 0 && <span>{panelists.length} panelists</span>}
+                      {panelists.length > 0 && s.config?.rounds && <><span>·</span><span>{s.config.rounds} rounds</span></>}
+                      <span>{panelists.length > 0 ? '·' : ''}</span>
+                      <span>{formatDate(s.updated_at)}</span>
+                      {s.status === 'completed' && s.verdict && (
+                        <>
+                          <span>·</span>
+                          <span className={styles.sessionScore}>{s.verdict.totalScore}/100</span>
+                        </>
+                      )}
+                    </div>
+                    {panelists.length > 0 && (
+                      <div className={styles.sessionPanelists}>
+                        {panelists.slice(0, 4).map((p, pi) => (
+                          <span
+                            key={pi}
+                            className={styles.pAvatar}
+                            style={{ background: p.bg, borderColor: p.bd, color: p.color }}
+                            title={p.name}
+                          >
+                            {p.avatar}
+                          </span>
+                        ))}
+                        {panelists.length > 4 && (
+                          <span className={styles.pMore}>+{panelists.length - 4}</span>
+                        )}
+                      </div>
                     )}
                   </div>
-                  <div className={styles.sessionPanelists}>
-                    {s.config.panelists.slice(0, 4).map((p, pi) => (
-                      <span
-                        key={pi}
-                        className={styles.pAvatar}
-                        style={{ background: p.bg, borderColor: p.bd, color: p.color }}
-                        title={p.name}
-                      >
-                        {p.avatar}
-                      </span>
-                    ))}
-                    {s.config.panelists.length > 4 && (
-                      <span className={styles.pMore}>+{s.config.panelists.length - 4}</span>
-                    )}
+                  <div className={styles.sessionActions}>
+                    <button className={styles.openBtn} onClick={() => handleOpen(s)}>
+                      {s.status === 'completed' ? 'VIEW REPORT' : 'CONTINUE'} →
+                    </button>
+                    <button
+                      className={styles.deleteBtn}
+                      onClick={e => handleDelete(s.id, e)}
+                      disabled={deleting === s.id}
+                      title="Delete session"
+                    >
+                      ✕
+                    </button>
                   </div>
                 </div>
-                <div className={styles.sessionActions}>
-                  <button
-                    className={styles.openBtn}
-                    onClick={() => handleOpen(s)}
-                  >
-                    {s.status === 'completed' ? 'VIEW REPORT' : 'CONTINUE'} →
-                  </button>
-                  <button
-                    className={styles.deleteBtn}
-                    onClick={e => handleDelete(s.id, e)}
-                    disabled={deleting === s.id}
-                    title="Delete session"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))}
+              )
+            })}
 
             {/* Empty slots */}
-            {Array.from({ length: Math.max(0, 3 - sessions.length) }, (_, i) => (
+            {Array.from({ length: Math.max(0, 3 - realSessions.length) }, (_, i) => (
               <div key={`empty-${i}`} className={styles.emptySlot}>
                 <span className={styles.emptySlotNum}>
-                  {String(sessions.length + i + 1).padStart(2, '0')}
+                  {String(realSessions.length + i + 1).padStart(2, '0')}
                 </span>
                 <span className={styles.emptySlotText}>OPEN SLOT</span>
               </div>
