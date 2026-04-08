@@ -145,6 +145,9 @@ export default function Dashboard({ onStartNew }: Props) {
                       <div className={styles.sessionTitle}>{s.title ?? 'Untitled Pitch'}</div>
                       <StatusBadge status={s.status} isDraft={draft} />
                     </div>
+                    {s.config?.sessionDescription && (
+                      <div className={styles.sessionDesc}>{s.config.sessionDescription}</div>
+                    )}
                     <div className={styles.sessionMeta}>
                       {panelists.length > 0 && <span>{panelists.length} panelists</span>}
                       {panelists.length > 0 && s.config?.rounds && <><span>·</span><span>{s.config.rounds} rounds</span></>}

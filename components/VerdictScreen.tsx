@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import type { SimConfig, Verdict, CoreCriterion, CaseSpecificCriterion } from '@/lib/types'
+import { exportToPDF } from '@/lib/pdf-export'
 import styles from './VerdictScreen.module.css'
 
 interface Props { verdict: Verdict; config: SimConfig; onRestart: () => void; backLabel?: string }
@@ -29,9 +30,13 @@ const TIER_LABELS: Record<string, string> = {
 function ScoreBar({ score, animated }: { score: number; animated: boolean }) {
   const pct = Math.min(100, Math.max(0, (score / 5) * 100))
   return (
-    <div className={styles.barBg}>
-      <div className={styles.barFill} style={{ width: animated ? `${pct}%` : '0%' }} />
-      <span className={styles.barScore}>{score}/5</span>
+    <div className={styles.barRow}>
+      <div className={styles.barBg}>
+        <div className={styles.barFill} style={{ width: animated ? `${pct}%` : '0%' }} />
+      </div>
+      <span className={styles.barScore}>
+        <strong>{score}</strong><span className={styles.barOf}>&thinsp;/&thinsp;5</span>
+      </span>
     </div>
   )
 }
@@ -40,15 +45,25 @@ export default function VerdictScreen({ verdict, config, onRestart, backLabel }:
   const [animated, setAnimated] = useState(false)
   useEffect(() => { setTimeout(() => setAnimated(true), 300) }, [])
 
-  const totalPct = Math.min(100, Math.max(0, verdict.totalScore))
+  const totalPct    = Math.min(100, Math.max(0, verdict.totalScore))
+  const sessionTitle = config.sessionName || config.ideaDocName || 'Session'
+
+  const handleExportPDF = () => exportToPDF(verdict, config, sessionTitle)
 
   return (
     <div className={styles.wrap}>
 
       {/* ── Top bar ── */}
       <header className={styles.topBar}>
-        <span className={styles.topBarTitle}>Universal Panel Evaluation Report</span>
-        <button className={styles.restartBtn} onClick={onRestart}>{backLabel ?? '← New session'}</button>
+        <div className={styles.topBarLeft}>
+          <button className={styles.restartBtn} onClick={onRestart}>{backLabel ?? '← New session'}</button>
+          <span className={styles.topBarTitle}>
+            {sessionTitle}
+          </span>
+        </div>
+        <button className={styles.pdfBtn} onClick={handleExportPDF}>
+          ↓ Export PDF
+        </button>
       </header>
 
       <div className={styles.scroll}>
@@ -71,6 +86,9 @@ export default function VerdictScreen({ verdict, config, onRestart, backLabel }:
               <span className={styles.heroDivider}>·</span>
               <span>Case-specific <strong>{verdict.caseSpecificScore}</strong>/25</span>
             </div>
+            {config.sessionDescription && (
+              <div className={styles.heroDesc}>{config.sessionDescription}</div>
+            )}
           </div>
         </section>
 
@@ -179,16 +197,22 @@ export default function VerdictScreen({ verdict, config, onRestart, backLabel }:
 
           <div className={styles.scoringTable}>
             <div className={styles.scoringRow}>
-              <span>Core Score (out of 75)</span>
-              <span className={styles.scoringValue}>{verdict.coreScore}</span>
+              <span>Core Score</span>
+              <span className={styles.scoringValue}>
+                {verdict.coreScore}<span className={styles.scoringOf}>&thinsp;/&thinsp;75</span>
+              </span>
             </div>
             <div className={styles.scoringRow}>
-              <span>Case-Specific Score (out of 25)</span>
-              <span className={styles.scoringValue}>{verdict.caseSpecificScore}</span>
+              <span>Case-Specific Score</span>
+              <span className={styles.scoringValue}>
+                {verdict.caseSpecificScore}<span className={styles.scoringOf}>&thinsp;/&thinsp;25</span>
+              </span>
             </div>
             <div className={`${styles.scoringRow} ${styles.scoringTotal}`}>
-              <span>Total Score (out of 100)</span>
-              <span className={styles.scoringValue}>{verdict.totalScore}</span>
+              <span>Total Score</span>
+              <span className={styles.scoringValue}>
+                {verdict.totalScore}<span className={styles.scoringOf}>&thinsp;/&thinsp;100</span>
+              </span>
             </div>
           </div>
 
@@ -202,8 +226,11 @@ export default function VerdictScreen({ verdict, config, onRestart, backLabel }:
           <button className={styles.newSessionBtn} onClick={onRestart}>
             Run Another Session ↗
           </button>
+          <button className={styles.newSessionBtn} style={{ borderColor: '#000', color: '#000' }} onClick={handleExportPDF}>
+            ↓ Export as PDF
+          </button>
           <p className={styles.footerNote}>
-            Powered by PitchWars — Universal Panel Evaluation Report
+            Powered by Outbindr — Universal Panel Evaluation Report
           </p>
         </div>
 

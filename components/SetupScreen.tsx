@@ -17,6 +17,8 @@ interface Props {
 }
 
 export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
+  const [sessionName, setSessionName]         = useState('')
+  const [sessionDescription, setSessionDescription] = useState('')
   const [panelFile, setPanelFile]   = useState<File | null>(null)
   const [ideaText, setIdeaText]     = useState('')
   const [pitchMode, setPitchMode]   = useState<'mic' | 'type'>('mic')
@@ -44,6 +46,12 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
     autoSaveRef.current = { panelists, ideaText, rounds, pitchMode }
   }, [panelists, ideaText, rounds, pitchMode])
 
+  // keep sessionName/description in ref so auto-save always has latest
+  const sessionNameRef = useRef(sessionName)
+  const sessionDescRef = useRef(sessionDescription)
+  useEffect(() => { sessionNameRef.current = sessionName }, [sessionName])
+  useEffect(() => { sessionDescRef.current = sessionDescription }, [sessionDescription])
+
   useEffect(() => {
     if (!onAutoSave) return
     const id = setInterval(() => {
@@ -52,7 +60,7 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
         panelists: p,
         ideaText:  it,
         rounds:    r,
-        title:     p.length > 0 ? `Draft — ${p.map(x => x.name).join(', ')}` : 'Draft',
+        title:     sessionNameRef.current || (p.length > 0 ? `Draft — ${p.map(x => x.name).join(', ')}` : 'Draft'),
         pitchMode: pm,
       })
     }, 10_000)
@@ -94,8 +102,10 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
     const cfg: SimConfig = {
       panelists,
       rounds,
-      panelDocName: panelFile?.name ?? 'Panel',
-      ideaDocName:  pitchMode === 'mic' ? 'Voice Pitch' : 'Written Pitch',
+      panelDocName:       panelFile?.name ?? 'Panel',
+      ideaDocName:        pitchMode === 'mic' ? 'Voice Pitch' : 'Written Pitch',
+      sessionName:        sessionName.trim() || undefined,
+      sessionDescription: sessionDescription.trim() || undefined,
     }
     onLaunch(cfg, null, ideaText)
   }
@@ -129,6 +139,33 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
       </div>
 
       <div className={styles.inner}>
+
+        {/* ── [00] Session name ── */}
+        <section className={styles.section}>
+          <div className={styles.sectionNum}>00</div>
+          <div className={styles.sectionBody}>
+            <div className={styles.sectionTitle}>Session Name</div>
+            <div className={styles.sectionHint}>
+              Give this session a name and optional description so you can find it later
+            </div>
+            <input
+              className={styles.nameInput}
+              type="text"
+              placeholder="e.g. Startup pitch — Series A panel"
+              value={sessionName}
+              onChange={e => setSessionName(e.target.value)}
+              maxLength={80}
+            />
+            <textarea
+              className={styles.descInput}
+              placeholder="Optional description — what is this session about? (shown in your history)"
+              value={sessionDescription}
+              onChange={e => setSessionDescription(e.target.value)}
+              rows={2}
+              maxLength={200}
+            />
+          </div>
+        </section>
 
         {/* ── [01] Panel document ── */}
         <section className={styles.section}>

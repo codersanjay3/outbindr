@@ -162,6 +162,25 @@
   text-align: center; background: #fafafa;
 }
 
+/* ── Session name/description inputs ── */
+.nameInput {
+  width: 100%; background: #fff; border: 1px solid #e0e0e0;
+  color: #000; font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; padding: 10px 14px; outline: none;
+  transition: border-color 0.15s; border-radius: 0;
+}
+.nameInput:focus { border-color: #000; }
+.nameInput::placeholder { color: #ccc; }
+
+.descInput {
+  width: 100%; background: #fff; border: 1px solid #e0e0e0;
+  color: #000; font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; padding: 10px 14px; outline: none; resize: vertical;
+  line-height: 1.65; transition: border-color 0.15s; border-radius: 0;
+}
+.descInput:focus { border-color: #000; }
+.descInput::placeholder { color: #ccc; }
+
 /* ── Type mode ── */
 .typeWrap { display: flex; flex-direction: column; gap: 6px; }
 .typeArea {

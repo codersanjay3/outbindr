@@ -93,6 +93,11 @@
 .badgeActive { background: #f0f0f0; color: #555; border: 1px solid #ddd; }
 .badgeDraft  { background: #fff; color: #bbb; border: 1px dashed #ddd; }
 
+.sessionDesc {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  color: #aaa; font-style: italic; line-height: 1.5;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px;
+}
 .sessionMeta {
   font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #888;
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;

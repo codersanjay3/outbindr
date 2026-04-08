@@ -49,9 +49,9 @@ export interface Verdict {
 
   /** CASE-SPECIFIC EVALUATION — 25 pts total */
   caseSpecific: {
-    justification:      string                    // why these criteria
-    contextPerformance: string                    // overall context assessment
-    criteria:           CaseSpecificCriterion[]   // 2–4 criteria, weights sum to 25
+    justification:      string
+    contextPerformance: string
+    criteria:           CaseSpecificCriterion[]
   }
 
   /** FINAL SUMMARY */
@@ -72,8 +72,10 @@ export interface Verdict {
 }
 
 export interface SimConfig {
-  panelists: Panelist[]
-  rounds: number
-  panelDocName: string
-  ideaDocName: string
+  panelists:          Panelist[]
+  rounds:             number
+  panelDocName:       string
+  ideaDocName:        string
+  sessionName?:       string   // user-provided session title
+  sessionDescription?: string  // user-provided description
 }

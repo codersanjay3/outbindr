@@ -24,7 +24,7 @@ export interface SessionRow {
   setup_state:   SetupState | null
 }
 
-/** Fetch all sessions for a user (max 3, newest first) */
+/** Fetch all sessions for a user (newest first) */
 export async function getSessions(): Promise<SessionRow[]> {
   const { data, error } = await supabase
     .from('sessions')
@@ -35,9 +35,21 @@ export async function getSessions(): Promise<SessionRow[]> {
   return (data ?? []) as SessionRow[]
 }
 
-/** Create a blank draft session the moment the user starts a new session.
- *  config defaults to empty — filled in when they actually launch. */
+/** Fetch a single session by ID */
+export async function getSessionById(id: string): Promise<SessionRow | null> {
+  const { data, error } = await supabase
+    .from('sessions')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (error) return null
+  return data as SessionRow
+}
+
+/** Create a blank draft session the moment the user starts a new session. */
 export async function createDraftSession(): Promise<SessionRow> {
+  // Don't include setup_state in insert — column may not exist yet on older schemas.
+  // Supabase will use the column default (null) if it exists.
   const { data, error } = await supabase
     .from('sessions')
     .insert({
@@ -47,7 +59,6 @@ export async function createDraftSession(): Promise<SessionRow> {
       status:        'in_progress',
       history:       [],
       current_round: 0,
-      setup_state:   null,
     })
     .select()
     .single()
@@ -60,33 +71,36 @@ export async function saveSetupState(
   sessionId: string,
   state: SetupState,
 ): Promise<void> {
-  const { error } = await supabase
-    .from('sessions')
-    .update({
-      setup_state: state,
-      title: state.title || 'Draft',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', sessionId)
-  if (error) console.error('saveSetupState:', error)
+  try {
+    const { error } = await supabase
+      .from('sessions')
+      .update({
+        title: state.title || 'Draft',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', sessionId)
+    if (error) console.error('saveSetupState:', error)
+  } catch {
+    // Non-fatal — setup_state column may not exist on older schemas
+  }
 }
 
 /** Promote a draft session to a running simulation */
 export async function createSession(
   config: SimConfig,
   ideaText: string,
-  existingId?: string,
+  existingId?: string | null,
 ): Promise<SessionRow> {
+  const title = config.sessionName || config.ideaDocName || 'Untitled Pitch'
+
   if (existingId) {
-    // Update the existing draft
     const { data, error } = await supabase
       .from('sessions')
       .update({
         config,
-        idea_text:   ideaText,
-        title:       config.ideaDocName || 'Untitled Pitch',
-        setup_state: null,
-        updated_at:  new Date().toISOString(),
+        idea_text:  ideaText,
+        title,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', existingId)
       .select()
@@ -100,11 +114,10 @@ export async function createSession(
     .insert({
       config,
       idea_text:     ideaText,
-      title:         config.ideaDocName || 'Untitled Pitch',
+      title,
       status:        'in_progress',
       history:       [],
       current_round: 0,
-      setup_state:   null,
     })
     .select()
     .single()

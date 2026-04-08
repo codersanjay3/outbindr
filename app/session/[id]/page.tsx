@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { getSessions, type SessionRow } from '@/lib/supabase-sessions'
+import { getSessionById, type SessionRow } from '@/lib/supabase-sessions'
 import PitchWars from '@/components/PitchWars'
 import VerdictScreen from '@/components/VerdictScreen'
 
@@ -15,7 +15,6 @@ export default function SessionPage() {
   const [error, setError]     = useState('')
 
   useEffect(() => {
-    // Verify auth
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) {
         router.push('/')
@@ -23,18 +22,18 @@ export default function SessionPage() {
       }
       loadSession()
     })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const loadSession = async () => {
     try {
-      const rows = await getSessions()
-      const found = rows.find(r => r.id === id)
+      const found = await getSessionById(id)
       if (!found) {
         setError('Session not found.')
       } else {
         setSession(found)
       }
-    } catch (e) {
+    } catch {
       setError('Failed to load session.')
     } finally {
       setLoading(false)
@@ -86,6 +85,12 @@ export default function SessionPage() {
         backLabel="← Dashboard"
       />
     )
+  }
+
+  // Draft (never launched) — redirect to dashboard
+  if (!session.config?.panelists?.length) {
+    router.push('/')
+    return null
   }
 
   // In progress — resume simulation
