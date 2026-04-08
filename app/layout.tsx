@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'PitchWars — Panel Simulator',
-  description: 'Upload your idea. Configure your panel. Watch them decide.',
+  title: 'Outbindr — Panel Simulator',
+  description: 'Configure your panel. Pitch your idea. Get scored by AI judges.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

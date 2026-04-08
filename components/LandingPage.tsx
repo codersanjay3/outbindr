@@ -28,7 +28,7 @@ function AppPreview() {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: "'IBM Plex Mono', monospace", background: '#fff', overflow: 'hidden' }}>
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 18px', borderBottom: '1px solid #e8e8e8', background: '#fff', flexShrink: 0 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', color: '#000' }}>PITCHWARS</span>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', color: '#000' }}>OUTBINDR</span>
         <div style={{ display: 'flex', gap: 6 }}>
           {[0,1,2].map(i => (
             <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: i===1 ? '#000' : '#e0e0e0', border: '1px solid #ccc' }} />
@@ -154,7 +154,7 @@ export default function LandingPage({ onEnterApp }: Props) {
 
       {/* ── Nav ── */}
       <nav className={styles.nav}>
-        <div className={styles.navLogo}>PITCHWARS</div>
+        <div className={styles.navLogo}>OUTBINDR</div>
         <div className={styles.navRight}>
           <a href="#features" className={styles.navLink}>Features</a>
           <a href="#how" className={styles.navLink}>How It Works</a>
@@ -261,7 +261,7 @@ export default function LandingPage({ onEnterApp }: Props) {
 
       {/* ── Footer ── */}
       <footer className={styles.footer}>
-        <span className={styles.footerLogo}>PITCHWARS</span>
+        <span className={styles.footerLogo}>OUTBINDR</span>
         <span className={styles.footerNote}>Panel Simulator · AI-Powered · Built with Claude</span>
       </footer>
     </div>

@@ -92,7 +92,7 @@ export default function SetupScreen({ onLaunch, onBack }: Props) {
               ← Dashboard
             </button>
           )}
-          <span className={styles.wordmarkMain}>PITCHWARS</span>
+          <span className={styles.wordmarkMain}>OUTBINDR</span>
           <span className={styles.wordmarkSub}>/ PANEL SIMULATOR / BETA</span>
         </div>
         <button className={styles.keysBtn} onClick={() => setShowKeys(true)}>
