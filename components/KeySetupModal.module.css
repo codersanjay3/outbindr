@@ -1,26 +1,52 @@
+/* ═══════════════════════════════════════════
+   KeySetupModal — same stark B&W aesthetic
+═══════════════════════════════════════════ */
+
 .overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.78);
+  position: fixed; inset: 0; background: rgba(0,0,0,0.88);
   display: flex; align-items: center; justify-content: center;
-  z-index: 100; animation: fadeUp 0.2s ease both;
+  z-index: 100; animation: fadeIn 0.15s ease both;
 }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
 .modal {
-  background: var(--surface); border: 1px solid var(--border2);
-  border-radius: 10px; padding: 28px; width: min(480px, 92vw);
-  display: flex; flex-direction: column; gap: 20px;
+  background: #050505; border: 1px solid rgba(255,255,255,0.1);
+  padding: 28px; width: min(460px, 92vw);
+  display: flex; flex-direction: column; gap: 22px;
+  animation: slideUp 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
 .header { display: flex; align-items: center; justify-content: space-between; }
-.title { font-family: 'Playfair Display', serif; font-size: 20px; color: #f5eed8; }
-.closeBtn { background: transparent; border: none; color: var(--text-dim); font-size: 16px; line-height: 1; padding: 4px; font-family: sans-serif; }
-.closeBtn:hover { color: var(--text); }
-.hint { font-size: 12px; color: var(--text-dim); font-family: 'DM Mono', monospace; line-height: 1.6; }
-.field { display: flex; flex-direction: column; gap: 6px; }
-.label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text); text-transform: uppercase; letter-spacing: 0.08em; }
-.optional { color: var(--text-dim); text-transform: none; font-size: 10px; letter-spacing: 0; }
-.note { color: var(--gold); text-transform: none; font-size: 10px; letter-spacing: 0; }
-.subhint { font-size: 10px; color: var(--text-dim); font-family: 'DM Mono', monospace; }
-.saveBtn {
-  background: var(--gold); color: #0d0d0f; border: none; border-radius: 4px; padding: 12px;
-  font-size: 12px; font-weight: 500; letter-spacing: 0.08em; transition: background 0.15s;
+.title {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.16em;
+  text-transform: uppercase; color: #fff;
 }
-.saveBtn:hover:not(:disabled) { background: var(--gold-light); }
-.saveBtn:disabled { background: var(--border2); color: var(--text-dim); cursor: not-allowed; }
+.closeBtn {
+  background: transparent; border: none; color: #444; font-size: 14px;
+  line-height: 1; padding: 4px; font-family: inherit; transition: color 0.15s;
+}
+.closeBtn:hover { color: #fff; }
+
+.hint {
+  font-size: 10px; color: #3a3a3a; line-height: 1.7; letter-spacing: 0.03em;
+}
+
+.field { display: flex; flex-direction: column; gap: 7px; }
+.label {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #666;
+}
+.optional { color: #2a2a2a; text-transform: none; letter-spacing: 0; font-size: 9px; }
+.note     { color: #555;    text-transform: none; letter-spacing: 0; font-size: 9px; }
+.subhint  { font-size: 9px; color: #2a2a2a; letter-spacing: 0.04em; }
+
+.saveBtn {
+  background: #fff; color: #000; border: none;
+  padding: 13px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.16em; font-family: inherit; transition: background 0.15s;
+}
+.saveBtn:hover:not(:disabled) { background: #e0e0e0; }
+.saveBtn:disabled { background: #111; color: #333; cursor: not-allowed; }

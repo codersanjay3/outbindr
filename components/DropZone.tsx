@@ -14,9 +14,7 @@ export default function DropZone({ label, accept = '.pdf,.txt,.md', onFile, file
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
 
-  const handle = (file: File | null) => {
-    if (file) onFile(file)
-  }
+  const handle = (file: File | null) => { if (file) onFile(file) }
 
   return (
     <div
@@ -33,17 +31,25 @@ export default function DropZone({ label, accept = '.pdf,.txt,.md', onFile, file
         style={{ display: 'none' }}
         onChange={e => handle(e.target.files?.[0] ?? null)}
       />
+
       {fileName ? (
-        <>
-          <div className={styles.fileIcon}>📎</div>
+        <div className={styles.fileInfo}>
+          <div className={styles.fileIcon}>
+            <span className={styles.fileIconLine} />
+            <span className={styles.fileIconLine} />
+            <span className={styles.fileIconLine} />
+          </div>
           <div className={styles.fileName}>{fileName}</div>
           <div className={styles.sub}>Click to replace</div>
-        </>
+        </div>
       ) : (
-        <>
+        <div className={styles.empty}>
+          <div className={styles.uploadIcon}>
+            <span className={styles.uploadArrow} />
+          </div>
           <div className={styles.title}>{label}</div>
-          <div className={styles.sub}>{hint || 'PDF, TXT, or MD'}</div>
-        </>
+          <div className={styles.sub}>{hint ?? 'PDF · TXT · MD'}</div>
+        </div>
       )}
     </div>
   )

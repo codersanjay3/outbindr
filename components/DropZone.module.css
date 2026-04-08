@@ -1,17 +1,56 @@
+/* ═══════════════════════════════════════════
+   DropZone — stark dashed rectangle, no emojis
+═══════════════════════════════════════════ */
+
 .zone {
-  border: 1px dashed var(--gold-border);
-  border-radius: 8px;
-  padding: 2.5rem 1.5rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: var(--bg);
+  width: 100%; min-height: 110px;
+  border: 1px dashed rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: border-color 0.15s, background 0.15s;
+  padding: 20px;
   user-select: none;
 }
-.zone:hover, .drag { border-color: var(--gold); background: var(--gold-bg); }
-.filled { border-style: solid; border-color: #3d5520; background: #0a1005; }
+.zone:hover { border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.02); }
+.drag   { border-color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.04); }
+.filled { border-style: solid; border-color: rgba(255,255,255,0.15); }
 
-.title { font-size: 14px; color: var(--text-muted); margin-bottom: 6px; }
-.sub   { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text-faint); }
-.fileIcon { font-size: 24px; margin-bottom: 8px; }
-.fileName { font-size: 13px; font-family: 'DM Mono', monospace; color: var(--gold); margin-bottom: 4px; }
+/* ── Empty state ── */
+.empty  { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+/* CSS upload chevron */
+.uploadIcon {
+  position: relative; width: 28px; height: 28px;
+  border: 1px solid rgba(255,255,255,0.18); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.uploadArrow {
+  display: block; width: 8px; height: 8px;
+  border-top: 1.5px solid rgba(255,255,255,0.35);
+  border-right: 1.5px solid rgba(255,255,255,0.35);
+  transform: rotate(-45deg) translateY(2px);
+}
+
+.title {
+  font-size: 11px; font-weight: 500; color: #777;
+  letter-spacing: 0.12em; text-transform: uppercase; text-align: center;
+}
+.sub {
+  font-size: 10px; color: #333; letter-spacing: 0.08em; text-align: center;
+}
+
+/* ── Filled state ── */
+.fileInfo { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+
+.fileIcon { display: flex; flex-direction: column; gap: 4px; padding: 2px; }
+.fileIconLine {
+  display: block; height: 1.5px; background: rgba(255,255,255,0.2); border-radius: 1px;
+}
+.fileIconLine:nth-child(1) { width: 24px; }
+.fileIconLine:nth-child(2) { width: 18px; }
+.fileIconLine:nth-child(3) { width: 20px; }
+
+.fileName {
+  font-size: 12px; color: #ccc; letter-spacing: 0.04em;
+  max-width: 260px; text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}

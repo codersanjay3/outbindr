@@ -8,14 +8,15 @@ interface Props {
 }
 
 export default function AudioPitchRecorder({ groqKey, onTranscript }: Props) {
-  const [phase, setPhase] = useState<'idle' | 'recording' | 'processing' | 'done'>('idle')
+  const [phase, setPhase]       = useState<'idle' | 'recording' | 'processing' | 'done'>('idle')
   const [liveText, setLiveText] = useState('')
   const [finalText, setFinalText] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError]       = useState('')
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const chunksRef = useRef<Blob[]>([])
+  const chunksRef        = useRef<Blob[]>([])
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null)
+  const recognitionRef   = useRef<any>(null)
 
   useEffect(() => {
     return () => {
@@ -44,6 +45,7 @@ export default function AudioPitchRecorder({ groqKey, onTranscript }: Props) {
     recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
     recorder.start(250)
 
+    // Live interim transcription via Web Speech (for display only — Whisper does final)
     const SpeechRecognitionAPI =
       (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition
     if (SpeechRecognitionAPI) {
@@ -55,7 +57,7 @@ export default function AudioPitchRecorder({ groqKey, onTranscript }: Props) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       recognition.onresult = (event: any) => {
         let interim = ''
-        let finals = ''
+        let finals  = ''
         for (let i = event.resultIndex; i < event.results.length; i++) {
           if (event.results[i].isFinal) finals += event.results[i][0].transcript + ' '
           else interim += event.results[i][0].transcript
@@ -85,9 +87,10 @@ export default function AudioPitchRecorder({ groqKey, onTranscript }: Props) {
 
     const mimeType = chunksRef.current[0]?.type ?? 'audio/webm'
     const blob = new Blob(chunksRef.current, { type: mimeType })
-    const ext = mimeType.includes('ogg') ? 'ogg' : 'webm'
+    const ext  = mimeType.includes('ogg') ? 'ogg' : 'webm'
 
     if (!groqKey) {
+      // No Groq key — use whatever Web Speech captured
       const text = liveText.replace(/\[.*?\]/g, '').trim()
       setFinalText(text)
       setPhase('done')
@@ -98,7 +101,7 @@ export default function AudioPitchRecorder({ groqKey, onTranscript }: Props) {
     try {
       const formData = new FormData()
       formData.append('audio', new File([blob], `pitch.${ext}`, { type: mimeType }))
-      const res = await fetch('/api/transcribe', {
+      const res  = await fetch('/api/transcribe', {
         method: 'POST',
         headers: { 'x-groq-key': groqKey },
         body: formData,
@@ -115,45 +118,65 @@ export default function AudioPitchRecorder({ groqKey, onTranscript }: Props) {
     }
   }
 
+  const reset = () => {
+    setPhase('idle')
+    setLiveText('')
+    setFinalText('')
+    setError('')
+  }
+
   return (
     <div className={styles.wrap}>
       {phase === 'idle' && (
-        <button className={styles.micBtn} onClick={startRecording}>
-          <span className={styles.micIcon}>🎙</span>
-          <span>Start Pitching</span>
-        </button>
+        <div className={styles.idleState}>
+          <button className={styles.recordBtn} onClick={startRecording} aria-label="Start recording">
+            <span className={styles.recordDot} />
+          </button>
+          <span className={styles.recordLabel}>TAP TO RECORD</span>
+        </div>
       )}
 
       {phase === 'recording' && (
-        <div className={styles.recording}>
+        <div className={styles.recordingState}>
           <div className={styles.waveRow}>
-            {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className={styles.bar} style={{ animationDelay: `${i * 80}ms` }} />
+            {Array.from({ length: 16 }).map((_, i) => (
+              <div
+                key={i}
+                className={styles.bar}
+                style={{ animationDelay: `${i * 60}ms`, animationDuration: `${0.6 + (i % 4) * 0.12}s` }}
+              />
             ))}
           </div>
-          <div className={styles.liveText}>{liveText || 'Listening...'}</div>
-          <button className={styles.stopBtn} onClick={stopRecording}>■ Stop</button>
-        </div>
-      )}
 
-      {phase === 'processing' && (
-        <div className={styles.processing}>
-          <span className={styles.spinner} />
-          <span>Transcribing with Whisper...</span>
-        </div>
-      )}
+          <div className={styles.liveText}>
+            {liveText || <span className={styles.listening}>LISTENING…</span>}
+          </div>
 
-      {phase === 'done' && (
-        <div className={styles.done}>
-          <div className={styles.doneLabel}>Your pitch — Whisper transcript</div>
-          <div className={styles.transcript}>{finalText}</div>
-          <button className={styles.rerecordBtn} onClick={() => { setPhase('idle'); setLiveText(''); setFinalText('') }}>
-            Re-record
+          <button className={styles.stopBtn} onClick={stopRecording} aria-label="Stop recording">
+            <span className={styles.stopSquare} />
+            <span>STOP</span>
           </button>
         </div>
       )}
 
-      {error && <p className={styles.error}>{error}</p>}
+      {phase === 'processing' && (
+        <div className={styles.processingState}>
+          <div className={styles.spinner} />
+          <span>TRANSCRIBING WITH WHISPER…</span>
+        </div>
+      )}
+
+      {phase === 'done' && (
+        <div className={styles.doneState}>
+          <div className={styles.doneHeader}>
+            <span className={styles.doneTag}>TRANSCRIPT</span>
+            <button className={styles.resetBtn} onClick={reset}>RE-RECORD</button>
+          </div>
+          <div className={styles.transcript}>{finalText}</div>
+        </div>
+      )}
+
+      {error && <div className={styles.error}>{error}</div>}
     </div>
   )
 }

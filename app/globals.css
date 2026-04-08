@@ -1,76 +1,61 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* ── Black & White palette ── */
+  --font: 'IBM Plex Mono', monospace;
+  --bg:          #000;
+  --surface:     #080808;
+  --surface2:    #111;
+  --border:      rgba(255,255,255,0.07);
+  --border2:     rgba(255,255,255,0.12);
+  --text:        #e8e8e8;
+  --text-muted:  #666;
+  --text-dim:    #444;
+  --text-faint:  #222;
   --gold:        #e8e8e8;
   --gold-light:  #ffffff;
-  --bg:          #000000;
-  --surface:     #0a0a0a;
-  --surface2:    #111111;
-  --border:      #1c1c1c;
-  --border2:     #262626;
-  --text:        #eeeeee;
-  --text-muted:  #666666;
-  --text-dim:    #444444;
-  --text-faint:  #282828;
-  --gold-bg:     #0d0d0d;
-  --gold-border: #303030;
-
-  /* semantic aliases */
-  --accent:        var(--gold);
-  --accent-border: var(--gold-border);
-  --input-bg:      #050505;
+  --gold-bg:     rgba(255,255,255,0.04);
+  --gold-border: rgba(255,255,255,0.15);
+  --input-bg:    #050505;
+  --accent:      #fff;
 }
 
 html, body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3 {
-  font-family: 'DM Mono', monospace;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: #ffffff;
-}
-
-.mono { font-family: 'DM Mono', monospace; }
+h1, h2, h3 { font-family: var(--font); font-weight: 600; color: #fff; }
 
 input, textarea {
   width: 100%;
   background: var(--input-bg);
-  border: 1px solid var(--border2);
-  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0;
   color: var(--text);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
+  font-family: var(--font);
+  font-size: 13px;
   padding: 10px 12px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.15s;
 }
-input:focus, textarea:focus { border-color: var(--gold-border); }
+input:focus, textarea:focus { border-color: rgba(255,255,255,0.4); }
 input::placeholder, textarea::placeholder { color: var(--text-dim); }
 textarea { resize: vertical; line-height: 1.6; }
 
-button { cursor: pointer; font-family: 'DM Mono', monospace; }
+button { cursor: pointer; font-family: var(--font); }
 
 @keyframes blink { 50% { opacity: 0; } }
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-@keyframes dot {
-  0%, 80%, 100% { transform: scale(0.7); opacity: 0.3; }
-  40%            { transform: scale(1);   opacity: 1;   }
-}
 @keyframes barGrow { from { width: 0; } }
 
 .cursor {
-  display: inline-block;
-  width: 2px; height: 14px;
-  background: #ffffff;
-  vertical-align: text-bottom;
+  display: inline-block; width: 2px; height: 14px;
+  background: #fff; vertical-align: text-bottom;
   animation: blink 0.9s step-end infinite;
 }
