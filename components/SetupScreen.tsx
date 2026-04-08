@@ -15,9 +15,8 @@ interface Props {
 
 export default function SetupScreen({ onLaunch, onBack }: Props) {
   const [panelFile, setPanelFile]   = useState<File | null>(null)
-  const [ideaFile, setIdeaFile]     = useState<File | null>(null)
   const [ideaText, setIdeaText]     = useState('')
-  const [pitchMode, setPitchMode]   = useState<'mic' | 'file'>('mic')
+  const [pitchMode, setPitchMode]   = useState<'mic' | 'type'>('mic')
   const [rounds, setRounds]         = useState(3)
   const [panelists, setPanelists]   = useState<Panelist[]>([])
   const [parsing, setParsing]       = useState(false)
@@ -25,8 +24,6 @@ export default function SetupScreen({ onLaunch, onBack }: Props) {
   const [showKeys, setShowKeys]     = useState(false)
 
   // ── Hydration-safe key loading ──────────────────────────────────────────
-  // Never call loadKeys() during SSR initial render — localStorage doesn't exist there.
-  // State starts with empty defaults (same on server + client), then loads after mount.
   const [mounted, setMounted] = useState(false)
   const [keys, setKeys]       = useState<StoredKeys>({ anthropic: '', groq: '', elevenlabs: '' })
 
@@ -65,8 +62,7 @@ export default function SetupScreen({ onLaunch, onBack }: Props) {
     }
   }
 
-  const pitchReady = pitchMode === 'mic' ? !!ideaText : !!ideaFile
-  // canLaunch is false on server (mounted=false), same on client initial render → no hydration mismatch
+  const pitchReady = ideaText.trim().length > 10
   const canLaunch  = mounted && panelists.length >= 2 && pitchReady && !parsing && hasTextKey(keys)
 
   const launch = () => {
@@ -75,14 +71,13 @@ export default function SetupScreen({ onLaunch, onBack }: Props) {
       panelists,
       rounds,
       panelDocName: panelFile?.name ?? 'Panel',
-      ideaDocName:  pitchMode === 'mic' ? 'Voice Pitch' : (ideaFile?.name ?? 'Idea'),
+      ideaDocName:  pitchMode === 'mic' ? 'Voice Pitch' : 'Written Pitch',
     }
-    onLaunch(cfg, pitchMode === 'file' ? ideaFile : null, pitchMode === 'mic' ? ideaText : undefined)
+    onLaunch(cfg, null, ideaText)
   }
 
   return (
     <div className={styles.wrap}>
-      {/* dot-grid background */}
       <div className={styles.grid} aria-hidden="true" />
 
       {showKeys && (
@@ -93,11 +88,7 @@ export default function SetupScreen({ onLaunch, onBack }: Props) {
       <div className={styles.topBar}>
         <div className={styles.wordmark}>
           {onBack && (
-            <button
-              className={styles.backBtn}
-              onClick={onBack}
-              style={{ marginRight: 16 }}
-            >
+            <button className={styles.backBtn} onClick={onBack} style={{ marginRight: 16 }}>
               ← Dashboard
             </button>
           )}
@@ -129,9 +120,7 @@ export default function SetupScreen({ onLaunch, onBack }: Props) {
 
             {parsing && (
               <div className={styles.statusRow}>
-                <span className={styles.statusDots}>
-                  <span /><span /><span />
-                </span>
+                <span className={styles.statusDots}><span /><span /><span /></span>
                 <span>Parsing panel document…</span>
               </div>
             )}
@@ -140,18 +129,9 @@ export default function SetupScreen({ onLaunch, onBack }: Props) {
             {panelists.length > 0 && (
               <div className={styles.panelists}>
                 {panelists.map((p, i) => (
-                  <div
-                    key={i}
-                    className={styles.panelistRow}
-                    style={{ borderLeftColor: p.color }}
-                  >
-                    <span className={styles.pNum}>
-                      {String(i + 1).padStart(2, '0')}
-                    </span>
-                    <span
-                      className={styles.pAvatar}
-                      style={{ background: p.bg, borderColor: p.bd }}
-                    >
+                  <div key={i} className={styles.panelistRow} style={{ borderLeftColor: p.color }}>
+                    <span className={styles.pNum}>{String(i + 1).padStart(2, '0')}</span>
+                    <span className={styles.pAvatar} style={{ background: p.bg, borderColor: p.bd }}>
                       {p.avatar}
                     </span>
                     <div className={styles.pInfo}>
@@ -171,33 +151,50 @@ export default function SetupScreen({ onLaunch, onBack }: Props) {
           <div className={styles.sectionBody}>
             <div className={styles.sectionTitle}>Your Pitch</div>
             <div className={styles.sectionHint}>
-              Record your verbal pitch or upload a document
+              Record your pitch verbally or type it out
             </div>
 
+            {/* Toggle */}
             <div className={styles.modeToggle}>
               <button
                 className={`${styles.modeBtn} ${pitchMode === 'mic' ? styles.modeBtnOn : ''}`}
-                onClick={() => setPitchMode('mic')}
+                onClick={() => { setPitchMode('mic'); setIdeaText('') }}
               >
                 VOICE
               </button>
               <button
-                className={`${styles.modeBtn} ${pitchMode === 'file' ? styles.modeBtnOn : ''}`}
-                onClick={() => setPitchMode('file')}
+                className={`${styles.modeBtn} ${pitchMode === 'type' ? styles.modeBtnOn : ''}`}
+                onClick={() => { setPitchMode('type'); setIdeaText('') }}
               >
-                FILE
+                TYPE
               </button>
             </div>
 
             {pitchMode === 'mic' ? (
               <AudioPitchRecorder groqKey={keys.groq} onTranscript={setIdeaText} />
             ) : (
-              <DropZone
-                label="DROP PITCH DOCUMENT"
-                hint="Pitch deck · Business plan · Research paper · Product spec"
-                onFile={setIdeaFile}
-                fileName={ideaFile?.name}
-              />
+              <div className={styles.typeWrap}>
+                <textarea
+                  className={styles.typeArea}
+                  placeholder="Describe your idea, project, or argument. The panel will base their evaluation on what you write here…"
+                  value={ideaText}
+                  onChange={e => setIdeaText(e.target.value)}
+                  rows={7}
+                />
+                <div className={styles.typeHint}>
+                  {ideaText.trim().length > 0
+                    ? `${ideaText.trim().split(/\s+/).length} words`
+                    : 'Min ~10 words to continue'}
+                </div>
+              </div>
+            )}
+
+            {/* Show transcript summary when voice mode has captured text */}
+            {pitchMode === 'mic' && ideaText && (
+              <div className={styles.transcriptPreview}>
+                <span className={styles.transcriptTag}>TRANSCRIPT READY</span>
+                <span className={styles.transcriptCount}>{ideaText.trim().split(/\s+/).length} words</span>
+              </div>
             )}
           </div>
         </section>
@@ -210,17 +207,10 @@ export default function SetupScreen({ onLaunch, onBack }: Props) {
             <div className={styles.sectionHint}>
               Each round: every panelist speaks, then you respond
             </div>
-
             <div className={styles.counter}>
-              <button
-                className={styles.countBtn}
-                onClick={() => setRounds(r => Math.max(2, r - 1))}
-              >−</button>
+              <button className={styles.countBtn} onClick={() => setRounds(r => Math.max(2, r - 1))}>−</button>
               <span className={styles.countNum}>{String(rounds).padStart(2, '0')}</span>
-              <button
-                className={styles.countBtn}
-                onClick={() => setRounds(r => Math.min(6, r + 1))}
-              >+</button>
+              <button className={styles.countBtn} onClick={() => setRounds(r => Math.min(6, r + 1))}>+</button>
               <span className={styles.countHint}>rounds</span>
             </div>
           </div>
@@ -233,17 +223,13 @@ export default function SetupScreen({ onLaunch, onBack }: Props) {
           </div>
         )}
 
-        <button
-          className={styles.launchBtn}
-          disabled={!canLaunch}
-          onClick={launch}
-        >
+        <button className={styles.launchBtn} disabled={!canLaunch} onClick={launch}>
           {parsing ? 'PARSING PANEL…' : 'LAUNCH SIMULATION ↗'}
         </button>
 
         <div className={styles.footer}>
           {panelists.length > 0
-            ? `${panelists.length} panelists · ${rounds} rounds · ${pitchMode === 'mic' ? 'voice pitch' : 'document pitch'}`
+            ? `${panelists.length} panelists · ${rounds} rounds · ${pitchMode === 'mic' ? 'voice pitch' : 'written pitch'}`
             : 'Upload a panel document to begin'
           }
         </div>
