@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSessionById, type SessionRow } from '@/lib/supabase-sessions'
+import { loadSimSnapshot, clearSimSnapshot } from '@/lib/sim-persist'
+import type { Message } from '@/lib/types'
 import PitchWars from '@/components/PitchWars'
 import VerdictScreen from '@/components/VerdictScreen'
 
@@ -10,9 +12,12 @@ export default function SessionPage() {
   const params   = useParams()
   const router   = useRouter()
   const id       = params.id as string
-  const [session, setSession] = useState<SessionRow | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState('')
+  const [session, setSession]         = useState<SessionRow | null>(null)
+  const [loading, setLoading]         = useState(true)
+  const [error, setError]             = useState('')
+  // localStorage may have a more recent snapshot than Supabase (saved on page close)
+  const [localHistory, setLocalHistory]   = useState<Message[] | undefined>(undefined)
+  const [localRound, setLocalRound]       = useState<number | undefined>(undefined)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -32,6 +37,15 @@ export default function SessionPage() {
         setError('Session not found.')
       } else {
         setSession(found)
+
+        // Check if localStorage has a more recent snapshot than Supabase
+        // (this happens when the user closed the tab mid-simulation)
+        const snap = loadSimSnapshot(id)
+        if (snap && snap.savedAt > new Date(found.updated_at).getTime()) {
+          setLocalHistory(snap.history)
+          setLocalRound(snap.round)
+          clearSimSnapshot(id)  // consumed — sim will re-save as it runs
+        }
       }
     } catch {
       setError('Failed to load session.')
@@ -94,13 +108,17 @@ export default function SessionPage() {
   }
 
   // In progress — resume simulation
+  // Prefer localStorage snapshot if it's more recent than the Supabase save
+  const resumeHistory = localHistory ?? session.history
+  const resumeRound   = localRound   ?? session.current_round
+
   return (
     <PitchWars
       initialSessionId={session.id}
       initialConfig={session.config}
-      initialHistory={session.history}
+      initialHistory={resumeHistory}
       initialIdeaText={session.idea_text}
-      initialRound={session.current_round}
+      initialRound={resumeRound}
       onBackToDashboard={goBack}
     />
   )

@@ -131,6 +131,7 @@ export default function PitchWars({
           onProgress={handleProgress}
           initialHistory={initialHistory}
           initialRound={initialRound}
+          sessionId={sessionIdRef.current ?? undefined}
         />
       )}
       {phase === 'verdict' && verdict && config && (

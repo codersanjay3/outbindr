@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import type { SimConfig, Message, Verdict, Panelist } from '@/lib/types'
 import { loadKeys, apiHeaders } from '@/lib/keys'
 import { speakSentence, extractCompleteSentences, cancelCurrentTTS, setMuted } from '@/lib/tts'
+import { saveSimSnapshot } from '@/lib/sim-persist'
 import AgentGraph, { type GraphEdge } from './AgentGraph'
 import AudioPitchRecorder from './AudioPitchRecorder'
 import styles from './SimScreen.module.css'
@@ -15,6 +16,7 @@ interface Props {
   onProgress?: (history: Message[], currentRound: number) => void
   initialHistory?: Message[]
   initialRound?: number
+  sessionId?: string
 }
 
 type Phase =
@@ -38,7 +40,7 @@ interface RapidFireQ {
   panelist: string; avatar: string; color: string; question: string
 }
 
-export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onProgress, initialHistory, initialRound }: Props) {
+export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onProgress, initialHistory, initialRound, sessionId }: Props) {
   const { panelists, rounds } = config
 
   // ── UI state ───────────────────────────────────────────────────────────────
@@ -99,31 +101,56 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { init() }, [])
 
-  // ── Auto-save every 10 seconds during sim ─────────────────────────────────
-  useEffect(() => {
-    if (!onProgress) return
-    const id = setInterval(() => {
-      onProgress(historyRef.current, currentRoundRef.current)
-    }, 10_000)
-    return () => clearInterval(id)
+  // ── Save helpers ───────────────────────────────────────────────────────────
+  const snapshotRef = useRef({ config, ideaText, sessionId })
+  useEffect(() => { snapshotRef.current = { config, ideaText, sessionId } }, [config, ideaText, sessionId])
+
+  /** Persist to Supabase (async — may not complete on tab close) */
+  const saveToServer = useCallback(() => {
+    if (onProgress) onProgress(historyRef.current, currentRoundRef.current)
   }, [onProgress])
 
-  // ── Save immediately when user leaves / hides the tab ────────────────────
+  /** Persist to localStorage (synchronous — always completes, even on tab close) */
+  const saveLocally = useCallback(() => {
+    const { config: cfg, ideaText: it, sessionId: sid } = snapshotRef.current
+    if (!sid) return
+    saveSimSnapshot({
+      sessionId: sid,
+      history:   historyRef.current,
+      round:     currentRoundRef.current,
+      config:    cfg,
+      ideaText:  it,
+      savedAt:   Date.now(),
+    })
+  }, [])
+
+  // ── Auto-save every 5 seconds to Supabase + localStorage ──────────────────
   useEffect(() => {
-    if (!onProgress) return
-    const saveNow = () => {
-      onProgress(historyRef.current, currentRoundRef.current)
-    }
+    const id = setInterval(() => {
+      saveLocally()   // synchronous — always safe
+      saveToServer()  // async — best effort
+    }, 5_000)
+    return () => clearInterval(id)
+  }, [saveLocally, saveToServer])
+
+  // ── Emergency save when tab is hidden or closed ───────────────────────────
+  useEffect(() => {
     const onVisibility = () => {
-      if (document.visibilityState === 'hidden') saveNow()
+      if (document.visibilityState === 'hidden') {
+        saveLocally()   // synchronous — completes before page dies
+        saveToServer()  // async — may or may not complete
+      }
     }
-    window.addEventListener('beforeunload', saveNow)
+    const onUnload = () => {
+      saveLocally()  // synchronous — guaranteed to complete
+    }
     document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('beforeunload', onUnload)
     return () => {
-      window.removeEventListener('beforeunload', saveNow)
       document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('beforeunload', onUnload)
     }
-  }, [onProgress])
+  }, [saveLocally, saveToServer])
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -479,7 +506,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
             onClick={() => setMuted_(m => !m)}
             title={muted ? 'Unmute audio' : 'Mute audio'}
           >
-            {muted ? '🔇 Unmute' : '🔊 Mute'}
+            {muted ? 'UNMUTE' : 'MUTE'}
           </button>
           <button
             className={styles.pauseBtn}
