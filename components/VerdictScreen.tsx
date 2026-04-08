@@ -2,9 +2,10 @@
 import { useEffect, useState } from 'react'
 import type { SimConfig, Verdict, CoreCriterion, CaseSpecificCriterion } from '@/lib/types'
 import { exportToPDF } from '@/lib/pdf-export'
+import { makeSessionPublic } from '@/lib/supabase-sessions'
 import styles from './VerdictScreen.module.css'
 
-interface Props { verdict: Verdict; config: SimConfig; onRestart: () => void; backLabel?: string }
+interface Props { verdict: Verdict; config: SimConfig; onRestart: () => void; backLabel?: string; sessionId?: string }
 
 const CORE_CRITERIA: { key: keyof Verdict['core']; label: string; weight: number }[] = [
   { key: 'communicationSkills',    label: 'Communication Skills',     weight: 15 },
@@ -41,14 +42,27 @@ function ScoreBar({ score, animated }: { score: number; animated: boolean }) {
   )
 }
 
-export default function VerdictScreen({ verdict, config, onRestart, backLabel }: Props) {
+export default function VerdictScreen({ verdict, config, onRestart, backLabel, sessionId }: Props) {
   const [animated, setAnimated] = useState(false)
+  const [shareLabel, setShareLabel] = useState('🔗 Share Replay')
   useEffect(() => { setTimeout(() => setAnimated(true), 300) }, [])
 
   const totalPct    = Math.min(100, Math.max(0, verdict.totalScore))
   const sessionTitle = config.sessionName || config.ideaDocName || 'Session'
 
   const handleExportPDF = () => exportToPDF(verdict, config, sessionTitle)
+
+  const handleShareReplay = async () => {
+    if (!sessionId) return
+    try {
+      const url = await makeSessionPublic(sessionId)
+      await navigator.clipboard.writeText(url)
+      setShareLabel('✓ Copied!')
+      setTimeout(() => setShareLabel('🔗 Share Replay'), 2000)
+    } catch (e) {
+      console.error('shareReplay error:', e)
+    }
+  }
 
   return (
     <div className={styles.wrap}>
@@ -61,9 +75,16 @@ export default function VerdictScreen({ verdict, config, onRestart, backLabel }:
             {sessionTitle}
           </span>
         </div>
-        <button className={styles.pdfBtn} onClick={handleExportPDF}>
-          ↓ Export PDF
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+          {sessionId && (
+            <button className={styles.shareBtn} onClick={handleShareReplay}>
+              {shareLabel}
+            </button>
+          )}
+          <button className={styles.pdfBtn} onClick={handleExportPDF}>
+            ↓ Export PDF
+          </button>
+        </div>
       </header>
 
       <div className={styles.scroll}>

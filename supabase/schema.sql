@@ -35,3 +35,8 @@ create policy "users_delete_own" on public.sessions
 -- Migration: run these if you have an existing sessions table
 -- alter table public.sessions add column if not exists setup_state jsonb default null;
 -- alter table public.sessions alter column config set default '{}'::jsonb;
+-- alter table public.sessions add column if not exists is_public boolean default false;
+
+-- Public replay policy — allows anonymous access to sessions marked public
+create policy "public_replay_select" on public.sessions
+  for select using (is_public = true);

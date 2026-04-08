@@ -22,6 +22,7 @@ export interface SessionRow {
   idea_text:     string
   current_round: number
   setup_state:   SetupState | null
+  is_public:     boolean
 }
 
 /** Fetch all sessions for a user (newest first) */
@@ -155,4 +156,26 @@ export async function completeSession(
 export async function deleteSession(sessionId: string): Promise<void> {
   const { error } = await supabase.from('sessions').delete().eq('id', sessionId)
   if (error) throw error
+}
+
+/** Mark a session as publicly shareable and return the watch URL */
+export async function makeSessionPublic(sessionId: string): Promise<string> {
+  const { error } = await supabase
+    .from('sessions')
+    .update({ is_public: true, updated_at: new Date().toISOString() })
+    .eq('id', sessionId)
+  if (error) throw error
+  return `https://www.outbindr.com/watch/${sessionId}`
+}
+
+/** Fetch a session that is publicly visible (no auth required) */
+export async function getPublicSession(id: string): Promise<SessionRow | null> {
+  const { data, error } = await supabase
+    .from('sessions')
+    .select('*')
+    .eq('is_public', true)
+    .eq('id', id)
+    .single()
+  if (error) return null
+  return data as SessionRow
 }

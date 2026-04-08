@@ -138,6 +138,7 @@ export default function PitchWars({
           verdict={verdict}
           config={config}
           onRestart={handleRestart}
+          sessionId={sessionIdRef.current ?? undefined}
         />
       )}
     </>

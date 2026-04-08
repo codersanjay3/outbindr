@@ -38,6 +38,14 @@
 }
 .pdfBtn:hover { background: #333; }
 
+.shareBtn {
+  background: transparent; color: #000; border: 1px solid #000;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  font-weight: 600; letter-spacing: 0.12em; padding: 7px 16px;
+  cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap; flex-shrink: 0;
+}
+.shareBtn:hover { background: #000; color: #fff; }
+
 /* ── Scrollable area ── */
 .scroll {
   flex: 1; overflow-y: auto; padding: 40px 24px;
