@@ -8,6 +8,7 @@ import type { SimConfig, Panelist } from '@/lib/types'
 import type { StoredKeys } from '@/lib/keys'
 import type { SetupState } from '@/lib/supabase-sessions'
 import { loadKeys, hasTextKey } from '@/lib/keys'
+import { PANEL_TEMPLATES } from '@/lib/panel-templates'
 import styles from './SetupScreen.module.css'
 
 interface Props {
@@ -28,6 +29,11 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
   const [parseError, setParseError] = useState('')
   const [showKeys, setShowKeys]     = useState(false)
   const [showGuide, setShowGuide]   = useState(false)
+
+  // ── Panel source toggle ────────────────────────────────────────────────
+  const [panelSource, setPanelSource]   = useState<'upload' | 'template'>('upload')
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('')
+  const [templateOpen, setTemplateOpen] = useState(false)
 
   // ── Hydration-safe key loading ──────────────────────────────────────────
   const [mounted, setMounted] = useState(false)
@@ -89,6 +95,35 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
       setPanelists(data.panelists)
     } catch {
       setParseError('Could not parse panel document. Try a plain text or PDF.')
+    } finally {
+      setParsing(false)
+    }
+  }
+
+  const handleTemplateSelect = async (templateId: string) => {
+    setSelectedTemplate(templateId)
+    setTemplateOpen(false)
+    const tmpl = PANEL_TEMPLATES.find(t => t.id === templateId)
+    if (!tmpl) return
+    setPanelists([])
+    setParseError('')
+    setParsing(true)
+    try {
+      const cur = loadKeys()
+      const h: Record<string, string> = {}
+      if (cur.groq) h['x-groq-key'] = cur.groq
+      const blob = new Blob([tmpl.text], { type: 'text/plain' })
+      const file = new File([blob], `${tmpl.id}.txt`, { type: 'text/plain' })
+      const fd = new FormData()
+      fd.append('panel', file)
+      const res  = await fetch('/api/parse-panel', { method: 'POST', headers: h, body: fd })
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      setPanelists(data.panelists)
+      // Set panel file so the config picks up a name
+      setPanelFile(file)
+    } catch {
+      setParseError('Could not load template. Make sure your Groq key is set.')
     } finally {
       setParsing(false)
     }
@@ -181,20 +216,85 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
               >ⓘ</button>
             </div>
             <div className={styles.sectionHint}>
-              Upload a document describing your evaluators — names, roles, personalities, criteria
+              Choose a preset panel template or upload your own document
             </div>
 
-            <DropZone
-              label="DROP PANEL DOCUMENT"
-              hint="PDF · TXT · MD"
-              onFile={handlePanelFile}
-              fileName={panelFile?.name}
-            />
+            {/* ── Source toggle ── */}
+            <div className={styles.modeToggle}>
+              <button
+                className={`${styles.modeBtn} ${panelSource === 'upload' ? styles.modeBtnOn : ''}`}
+                onClick={() => {
+                  setPanelSource('upload')
+                  setPanelists([])
+                  setPanelFile(null)
+                  setSelectedTemplate('')
+                  setParseError('')
+                }}
+              >
+                UPLOAD
+              </button>
+              <button
+                className={`${styles.modeBtn} ${panelSource === 'template' ? styles.modeBtnOn : ''}`}
+                onClick={() => {
+                  setPanelSource('template')
+                  setPanelists([])
+                  setPanelFile(null)
+                  setSelectedTemplate('')
+                  setParseError('')
+                }}
+              >
+                TEMPLATES
+              </button>
+            </div>
+
+            {/* ── Upload mode ── */}
+            {panelSource === 'upload' && (
+              <DropZone
+                label="DROP PANEL DOCUMENT"
+                hint="PDF · TXT · MD"
+                onFile={handlePanelFile}
+                fileName={panelFile?.name}
+              />
+            )}
+
+            {/* ── Template mode ── */}
+            {panelSource === 'template' && (
+              <div className={styles.templateWrap}>
+                <button
+                  className={styles.templateDropdownBtn}
+                  onClick={() => setTemplateOpen(o => !o)}
+                  type="button"
+                >
+                  <span>
+                    {selectedTemplate
+                      ? PANEL_TEMPLATES.find(t => t.id === selectedTemplate)?.label ?? 'Select a template'
+                      : 'Select a template'}
+                  </span>
+                  <span className={styles.templateChevron}>{templateOpen ? '▲' : '▼'}</span>
+                </button>
+
+                {templateOpen && (
+                  <div className={styles.templateMenu}>
+                    {PANEL_TEMPLATES.map(t => (
+                      <button
+                        key={t.id}
+                        className={`${styles.templateOption} ${selectedTemplate === t.id ? styles.templateOptionActive : ''}`}
+                        onClick={() => handleTemplateSelect(t.id)}
+                        type="button"
+                      >
+                        <span className={styles.templateOptionLabel}>{t.label}</span>
+                        <span className={styles.templateOptionDesc}>{t.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {parsing && (
               <div className={styles.statusRow}>
                 <span className={styles.statusDots}><span /><span /><span /></span>
-                <span>Parsing panel document…</span>
+                <span>{panelSource === 'template' ? 'Loading template…' : 'Parsing panel document…'}</span>
               </div>
             )}
             {parseError && <div className={styles.errorRow}>{parseError}</div>}

@@ -202,6 +202,74 @@
 .transcriptTag { font-size: 9px; font-weight: 600; letter-spacing: 0.18em; color: #000; }
 .transcriptCount { font-size: 10px; color: #aaa; }
 
+/* ── Template dropdown ── */
+.templateWrap {
+  position: relative;
+  width: 100%;
+}
+.templateDropdownBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  color: #000;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 11px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  text-align: left;
+}
+.templateDropdownBtn:hover { border-color: #000; }
+.templateChevron {
+  font-size: 9px;
+  color: #aaa;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+.templateMenu {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+.templateOption {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 12px 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.templateOption:last-child { border-bottom: none; }
+.templateOption:hover { background: #f8f8f8; }
+.templateOptionActive { background: #f5f5f5; }
+.templateOptionLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #000;
+  letter-spacing: 0.04em;
+}
+.templateOptionDesc {
+  font-size: 10px;
+  color: #999;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+}
+
 /* ── Launch button ── */
 .launchBtn {
   width: 100%; padding: 18px;
