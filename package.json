@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",
+    "@supabase/supabase-js": "^2.102.1",
     "groq-sdk": "^1.1.2",
     "next": "^16.2.2",
     "pdf-parse": "^1.1.1",

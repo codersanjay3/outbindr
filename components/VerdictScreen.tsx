@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { SimConfig, Verdict, CoreCriterion, CaseSpecificCriterion } from '@/lib/types'
 import styles from './VerdictScreen.module.css'
 
-interface Props { verdict: Verdict; config: SimConfig; onRestart: () => void }
+interface Props { verdict: Verdict; config: SimConfig; onRestart: () => void; backLabel?: string }
 
 const CORE_CRITERIA: { key: keyof Verdict['core']; label: string; weight: number }[] = [
   { key: 'communicationSkills',    label: 'Communication Skills',     weight: 15 },
@@ -36,7 +36,7 @@ function ScoreBar({ score, animated }: { score: number; animated: boolean }) {
   )
 }
 
-export default function VerdictScreen({ verdict, config, onRestart }: Props) {
+export default function VerdictScreen({ verdict, config, onRestart, backLabel }: Props) {
   const [animated, setAnimated] = useState(false)
   useEffect(() => { setTimeout(() => setAnimated(true), 300) }, [])
 
@@ -48,7 +48,7 @@ export default function VerdictScreen({ verdict, config, onRestart }: Props) {
       {/* ── Top bar ── */}
       <header className={styles.topBar}>
         <span className={styles.topBarTitle}>Universal Panel Evaluation Report</span>
-        <button className={styles.restartBtn} onClick={onRestart}>← New session</button>
+        <button className={styles.restartBtn} onClick={onRestart}>{backLabel ?? '← New session'}</button>
       </header>
 
       <div className={styles.scroll}>

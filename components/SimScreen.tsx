@@ -10,7 +10,10 @@ interface Props {
   config: SimConfig
   ideaFile: File | null
   ideaText: string
-  onVerdict: (v: Verdict) => void
+  onVerdict: (v: Verdict, history: Message[]) => void
+  onProgress?: (history: Message[], currentRound: number) => void
+  initialHistory?: Message[]
+  initialRound?: number
 }
 
 type Phase =
@@ -28,7 +31,7 @@ interface RoundQuestion {
   name: string; avatar: string; color: string; question: string
 }
 
-export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Props) {
+export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onProgress, initialHistory, initialRound }: Props) {
   const { panelists, rounds } = config
 
   // ── UI state ───────────────────────────────────────────────────────────────
@@ -40,12 +43,12 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
   const [showHistory, setShowHistory]       = useState(false)
   const [userReply, setUserReply]           = useState('')
   const [edges, setEdges]                   = useState<GraphEdge[]>([])
-  const [currentRound, setCurrentRound]     = useState(0)
+  const [currentRound, setCurrentRound]     = useState(initialRound ?? 0)
   const [roundQuestions, setRoundQuestions] = useState<RoundQuestion[]>([])
   const [paused, setPaused]                 = useState(false)
 
   // ── Stable refs ────────────────────────────────────────────────────────────
-  const historyRef         = useRef<Message[]>([])
+  const historyRef         = useRef<Message[]>(initialHistory ?? [])
   const ideaRef            = useRef('')
   const ideaB64Ref         = useRef('')
   const ideaMimeRef        = useRef('')
@@ -76,7 +79,11 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
     resolveUserTurnRef.current?.(reply)
     resolveUserTurnRef.current = null
     setUserReply('')
-  }, [])
+    // Save progress after user submits their reply
+    if (onProgress) {
+      onProgress(historyRef.current, currentRound)
+    }
+  }, [currentRound, onProgress])
 
   const handleInterrupt = useCallback(() => {
     interruptRef.current = true
@@ -280,7 +287,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
       body: JSON.stringify({ panelists, history: historyRef.current }),
     })
     const verdict = await vRes.json()
-    onVerdict(verdict)
+    onVerdict(verdict, historyRef.current)
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────

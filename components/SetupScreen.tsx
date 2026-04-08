@@ -10,9 +10,10 @@ import styles from './SetupScreen.module.css'
 
 interface Props {
   onLaunch: (config: SimConfig, idea: File | null, ideaText?: string) => void
+  onBack?: () => void
 }
 
-export default function SetupScreen({ onLaunch }: Props) {
+export default function SetupScreen({ onLaunch, onBack }: Props) {
   const [panelFile, setPanelFile]   = useState<File | null>(null)
   const [ideaFile, setIdeaFile]     = useState<File | null>(null)
   const [ideaText, setIdeaText]     = useState('')
@@ -91,6 +92,15 @@ export default function SetupScreen({ onLaunch }: Props) {
       {/* ── Top bar ── */}
       <div className={styles.topBar}>
         <div className={styles.wordmark}>
+          {onBack && (
+            <button
+              className={styles.backBtn}
+              onClick={onBack}
+              style={{ marginRight: 16 }}
+            >
+              ← Dashboard
+            </button>
+          )}
           <span className={styles.wordmarkMain}>PITCHWARS</span>
           <span className={styles.wordmarkSub}>/ PANEL SIMULATOR / BETA</span>
         </div>
