@@ -11,9 +11,9 @@ interface Props {
 const FEATURES = [
   { n: '01', title: 'Upload Any Panel', body: 'Drop a PDF or text file describing your evaluators. Names, roles, personalities, criteria — the AI handles the rest.' },
   { n: '02', title: 'Voice Your Pitch', body: 'Record your verbal pitch. Groq Whisper transcribes it in real time with live interim text.' },
-  { n: '03', title: 'Live AI Panel', body: 'Each investor is a separate LLM call. They privately deliberate, then speak to you with distinct ElevenLabs voices.' },
-  { n: '04', title: 'Agent Network', body: 'A live SVG graph shows investors connecting when one references another — backend coordination made visible.' },
-  { n: '05', title: 'Round Responses', body: 'After every round, all investor questions surface together. You answer at once. Your response shapes the next round.' },
+  { n: '03', title: 'Live AI Panel', body: 'Each judge is a separate LLM call. They privately deliberate, then speak to you with distinct ElevenLabs voices.' },
+  { n: '04', title: 'Agent Network', body: 'A live SVG graph shows judges connecting when one references another — backend coordination made visible.' },
+  { n: '05', title: 'Round Responses', body: 'After every round, all judging questions surface together. You answer at once. Your response shapes the next round.' },
   { n: '06', title: 'Performance Report', body: '10 core criteria × 75 points + 2–4 case-specific criteria × 25 points. A real rubric. A real score out of 100.' },
 ]
 
@@ -172,7 +172,7 @@ export default function LandingPage({ onEnterApp }: Props) {
             Pitch against AI.<br/>Walk in ready.
           </h1>
           <p className={styles.heroSub}>
-            Simulate a live investor panel with AI evaluators who ask sharp questions,
+            Simulate a live judging panel with AI evaluators who ask sharp questions,
             debate each other, and score your performance against a 100-point rubric.
           </p>
           <div className={styles.heroCtas}>
@@ -231,7 +231,7 @@ export default function LandingPage({ onEnterApp }: Props) {
             {[
               { n:'01', t:'Configure', b:'Upload a document defining your panel — names, roles, personalities, criteria. The AI parses it into individual evaluators.' },
               { n:'02', t:'Pitch', b:'Record your verbal pitch or type your idea. Whisper AI transcribes it. Your words become the foundation of the session.' },
-              { n:'03', t:'Panel + Respond', b:'AI investors deliberate privately, speak publicly. After each round, answer all their questions at once. Your answers shape the next round.' },
+              { n:'03', t:'Panel + Respond', b:'AI judges deliberate privately, speak publicly. After each round, answer all their questions at once. Your answers shape the next round.' },
               { n:'04', t:'Receive Report', b:'A 100-point Universal Performance Report: 10 core criteria, 2–4 context-specific criteria chosen by the panel, and a final recommendation tier.' },
             ].map((s, i) => (
               <div key={i} className={styles.step}>
@@ -250,7 +250,7 @@ export default function LandingPage({ onEnterApp }: Props) {
         <div className={styles.finalCtaInner}>
           <div className={styles.finalEye}>READY?</div>
           <h2 className={styles.finalTitle}>
-            The investors aren&apos;t real.<br/>Your preparation should be.
+            The judges aren&apos;t real.<br/>Your preparation should be.
           </h2>
           <button className={styles.finalBtn} onClick={() => setShowAuth(true)}>
             Launch Free Session →
