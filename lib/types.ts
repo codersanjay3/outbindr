@@ -7,6 +7,8 @@ export interface Panelist {
   bd: string
   voiceId: string
   webSpeechVoice: string
+  webSpeechPitch: number
+  webSpeechRate: number
 }
 
 export interface Message {

@@ -1,0 +1,40 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.label {
+  font-size: 9px;
+  font-family: 'DM Mono', monospace;
+  color: rgba(255, 255, 255, 0.25);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.svg {
+  display: block;
+  overflow: visible;
+}
+
+.edgeActive {
+  animation: edgePulse 1.2s ease-in-out;
+}
+
+@keyframes edgePulse {
+  0%   { opacity: 0.3; stroke-width: 1; }
+  40%  { opacity: 1;   stroke-width: 2; }
+  100% { opacity: 0.8; stroke-width: 1.5; }
+}
+
+.pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nodePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes nodePulse {
+  0%, 100% { opacity: 0.12; transform: scale(1); }
+  50%       { opacity: 0.45; transform: scale(1.35); }
+}

@@ -31,21 +31,21 @@ export async function POST(req: NextRequest) {
 
   const isLastRound = round === totalRounds - 1
 
-  const system = `You are ${panelist.name}. Your profile: ${panelist.role}
+  // Tight prompt: 2-3 sentences + 1 question, nothing more
+  const system = `You are ${panelist.name}. ${panelist.role}
 
-You are in a live panel evaluation. Other panelists:
+Panel peers:
 ${othersDesc}
 
-RULES:
-- Speak naturally as ${panelist.name}. 3–5 sentences max.
-- Address other panelists by name when building on or pushing back on their points.
-- Ask ONE sharp question directed at the presenter or a fellow panelist.
-- Ground every comment in the actual pitch content — cite specifics.
-- Stay fully in character. No meta-commentary.
-- ${isLastRound
-    ? 'FINAL ROUND. Give a clear decisive conclusion: approve, reject, or conditional approval with specific conditions.'
-    : `Round ${round + 1} of ${totalRounds}. Surface new angles not yet explored.`
-  }`
+RULES — follow exactly:
+1. Make 1-2 sharp observations about the pitch. Be direct and specific.
+2. Reference another panelist by name if you're agreeing or pushing back.
+3. End with exactly ONE question for the presenter. Make it pointed.
+4. Total response: 2-3 short sentences + the question. NO MORE.
+5. Stay in character. No meta-commentary.
+${isLastRound
+  ? '6. FINAL ROUND: After your question, give a one-sentence verdict: approve / reject / conditional.'
+  : ''}`
 
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = []
 
@@ -53,23 +53,24 @@ RULES:
     messages.push({
       role: 'user',
       content: ideaText
-        ? `Pitch summary:\n${ideaText.slice(0, 1500)}\n\n[Continuing panel discussion]`
-        : '[Continuing panel discussion]',
+        ? `Pitch summary:\n${ideaText.slice(0, 800)}\n\n[Panel continues]`
+        : '[Panel continues]',
     })
-    messages.push({ role: 'assistant', content: 'Understood, continuing.' })
+    messages.push({ role: 'assistant', content: 'Understood.' })
   }
 
   for (const msg of history) {
-    messages.push({ role: msg.role, content: msg.content })
+    messages.push({ role: msg.role as 'user' | 'assistant', content: msg.content })
   }
 
   const userMsg = isFirst && ideaText
-    ? `Submitted pitch:\n\n---\n${ideaText}\n---\n\nBegin the panel evaluation.`
-    : 'Continue the panel discussion.'
+    ? `Submitted pitch:\n\n---\n${ideaText.slice(0, 1200)}\n---\n\nBegin.`
+    : 'Your turn.'
 
   messages.push({ role: 'user', content: userMsg })
 
-  const stream = await client.streamMessage(system, messages, 350)
+  // 130 tokens max — keeps responses tight and snappy
+  const stream = await client.streamMessage(system, messages, 130)
 
   return new Response(stream, {
     headers: {

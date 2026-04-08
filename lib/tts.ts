@@ -1,4 +1,20 @@
-/** Speak text via ElevenLabs (proxied through /api/tts). Resolves when audio finishes. */
+// Module-level handles so we can cancel mid-sentence
+let _audioEl: HTMLAudioElement | null = null
+let _synthActive = false
+
+/** Stop whatever TTS is currently playing. Safe to call at any time. */
+export function cancelCurrentTTS(): void {
+  if (_audioEl) {
+    _audioEl.pause()
+    _audioEl.src = ''
+    _audioEl = null
+  }
+  if (_synthActive) {
+    try { speechSynthesis.cancel() } catch { /* noop in SSR */ }
+    _synthActive = false
+  }
+}
+
 async function speakWithElevenLabs(
   text: string,
   voiceId: string,
@@ -12,68 +28,79 @@ async function speakWithElevenLabs(
     },
     body: JSON.stringify({ text, voiceId }),
   })
-  if (!res.ok) throw new Error('ElevenLabs TTS failed')
+  if (!res.ok) throw new Error(`ElevenLabs TTS failed: ${res.status}`)
   const blob = await res.blob()
   const url = URL.createObjectURL(blob)
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const audio = new Audio(url)
-    audio.onended = () => { URL.revokeObjectURL(url); resolve() }
-    audio.onerror = () => { URL.revokeObjectURL(url); resolve() }
-    audio.play().catch(() => resolve())
+    _audioEl = audio
+    const cleanup = () => { URL.revokeObjectURL(url); _audioEl = null; resolve() }
+    audio.onended = cleanup
+    audio.onerror = cleanup
+    audio.play().catch(cleanup)
   })
 }
 
-/** Speak text via browser SpeechSynthesis. Resolves when utterance ends. */
-function speakWithWebSpeech(text: string, voiceName: string): Promise<void> {
-  return new Promise((resolve) => {
+function speakWithWebSpeech(
+  text: string,
+  voiceName: string,
+  pitch = 1.0,
+  rate  = 1.0
+): Promise<void> {
+  return new Promise(resolve => {
     const utterance = new SpeechSynthesisUtterance(text)
     const voices = speechSynthesis.getVoices()
-    const voice = voices.find(v => v.name === voiceName)
-    if (voice) utterance.voice = voice
-    utterance.rate = 1.0
-    utterance.pitch = 1.0
-    utterance.onend = () => resolve()
-    utterance.onerror = () => resolve()
+    const match = voices.find(v => v.name === voiceName)
+    if (match) utterance.voice = match
+    utterance.pitch = pitch
+    utterance.rate  = rate
+    utterance.onend   = () => { _synthActive = false; resolve() }
+    utterance.onerror = () => { _synthActive = false; resolve() }
+    _synthActive = true
     speechSynthesis.speak(utterance)
   })
 }
 
 /**
- * Speak a sentence. Uses ElevenLabs if key provided, falls back to Web Speech API.
- * Always resolves (never rejects) — the simulation loop must not break on TTS failure.
+ * Speak one sentence. Uses ElevenLabs if key is present, falls back to Web Speech.
+ * Never rejects — a TTS error is silently recovered from.
  */
 export async function speakSentence(
   text: string,
   voiceId: string,
   webSpeechVoice: string,
-  elevenLabsKey: string | null
+  elevenLabsKey: string | null,
+  webSpeechPitch = 1.0,
+  webSpeechRate  = 1.0
 ): Promise<void> {
   if (!text.trim()) return
   try {
     if (elevenLabsKey) {
       await speakWithElevenLabs(text, voiceId, elevenLabsKey)
     } else {
-      await speakWithWebSpeech(text, webSpeechVoice)
+      await speakWithWebSpeech(text, webSpeechVoice, webSpeechPitch, webSpeechRate)
     }
   } catch {
-    try { await speakWithWebSpeech(text, webSpeechVoice) } catch { /* silent fallback */ }
+    try {
+      await speakWithWebSpeech(text, webSpeechVoice, webSpeechPitch, webSpeechRate)
+    } catch { /* silent */ }
   }
 }
 
 /**
- * Extract complete sentences from a streaming text buffer.
- * Returns sentences found and the remaining incomplete fragment.
+ * Split a streaming text buffer into complete sentences and a trailing remainder.
  */
-export function extractCompleteSentences(buffer: string): { sentences: string[]; remainder: string } {
+export function extractCompleteSentences(buffer: string): {
+  sentences: string[]
+  remainder: string
+} {
   const sentenceEnd = /[.!?]+(?:\s|$)/g
   const sentences: string[] = []
   let lastIndex = 0
   let match: RegExpExecArray | null
-
   while ((match = sentenceEnd.exec(buffer)) !== null) {
     sentences.push(buffer.slice(lastIndex, match.index + match[0].length).trim())
     lastIndex = match.index + match[0].length
   }
-
   return { sentences, remainder: buffer.slice(lastIndex) }
 }
