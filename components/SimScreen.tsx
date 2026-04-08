@@ -475,12 +475,11 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
 
         <div className={styles.headerRight}>
           <button
-            className={styles.muteBtn}
+            className={`${styles.pauseBtn} ${muted ? styles.muteBtnOn : ''}`}
             onClick={() => setMuted_(m => !m)}
             title={muted ? 'Unmute audio' : 'Mute audio'}
-            aria-label={muted ? 'Unmute audio' : 'Mute audio'}
           >
-            {muted ? '🔇' : '🔊'}
+            {muted ? '🔇 Unmute' : '🔊 Mute'}
           </button>
           <button
             className={styles.pauseBtn}
