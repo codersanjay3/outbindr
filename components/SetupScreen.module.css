@@ -24,7 +24,8 @@
   border-bottom: 1px solid #e8e8e8;
   background: rgba(255,255,255,0.95);
 }
-.wordmark { display: flex; align-items: baseline; gap: 10px; }
+.wordmark { display: flex; align-items: center; gap: 10px; }
+.wordmarkLogo { width: 20px; height: 20px; object-fit: contain; display: block; flex-shrink: 0; }
 .wordmarkMain {
   font-size: 14px; font-weight: 600; letter-spacing: 0.18em; color: #000;
 }

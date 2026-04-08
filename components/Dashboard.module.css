@@ -7,7 +7,9 @@
 .wordmark {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 13px; font-weight: 600; letter-spacing: 0.18em; color: #000;
+  display: flex; align-items: center; gap: 8px;
 }
+.wordmarkLogo { width: 20px; height: 20px; object-fit: contain; display: block; }
 .topRight { display: flex; align-items: center; gap: 16px; }
 .userEmail {
   font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #888;

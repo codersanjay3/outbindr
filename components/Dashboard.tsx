@@ -93,7 +93,10 @@ export default function Dashboard({ onStartNew }: Props) {
     <div className={styles.wrap}>
       {/* Top bar */}
       <div className={styles.topBar}>
-        <div className={styles.wordmark}>OUTBINDR</div>
+        <div className={styles.wordmark}>
+          <img src="/logo.png" alt="Outbindr" className={styles.wordmarkLogo} />
+          OUTBINDR
+        </div>
         <div className={styles.topRight}>
           <span className={styles.userEmail}>{userEmail}</span>
           <button className={styles.signOutBtn} onClick={handleSignOut}>Sign out</button>

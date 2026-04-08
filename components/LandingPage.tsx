@@ -154,7 +154,10 @@ export default function LandingPage({ onEnterApp }: Props) {
 
       {/* ── Nav ── */}
       <nav className={styles.nav}>
-        <div className={styles.navLogo}>OUTBINDR</div>
+        <div className={styles.navLogo}>
+          <img src="/logo.png" alt="Outbindr" className={styles.navLogoImg} />
+          OUTBINDR
+        </div>
         <div className={styles.navRight}>
           <a href="#features" className={styles.navLink}>Features</a>
           <a href="#how" className={styles.navLink}>How It Works</a>
@@ -261,7 +264,10 @@ export default function LandingPage({ onEnterApp }: Props) {
 
       {/* ── Footer ── */}
       <footer className={styles.footer}>
-        <span className={styles.footerLogo}>OUTBINDR</span>
+        <span className={styles.footerLogo}>
+          <img src="/logo.png" alt="Outbindr" className={styles.footerLogoImg} />
+          OUTBINDR
+        </span>
         <span className={styles.footerNote}>Panel Simulator · AI-Powered · Built with Claude</span>
       </footer>
     </div>

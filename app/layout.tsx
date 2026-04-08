@@ -4,6 +4,16 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Outbindr — Panel Simulator',
   description: 'Configure your panel. Pitch your idea. Get scored by AI judges.',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
+  openGraph: {
+    title: 'Outbindr — Panel Simulator',
+    description: 'Configure your panel. Pitch your idea. Get scored by AI judges.',
+    images: [{ url: '/logo.png' }],
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

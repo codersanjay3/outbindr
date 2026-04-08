@@ -165,6 +165,7 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
               ← Dashboard
             </button>
           )}
+          <img src="/logo.png" alt="Outbindr" className={styles.wordmarkLogo} />
           <span className={styles.wordmarkMain}>OUTBINDR</span>
           <span className={styles.wordmarkSub}>/ PANEL SIMULATOR / BETA</span>
         </div>
