@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { SimConfig, Message, Verdict, Panelist } from '@/lib/types'
 import { loadKeys, apiHeaders } from '@/lib/keys'
-import { speakSentence, extractCompleteSentences, cancelCurrentTTS } from '@/lib/tts'
+import { speakSentence, extractCompleteSentences, cancelCurrentTTS, setMuted } from '@/lib/tts'
 import AgentGraph, { type GraphEdge } from './AgentGraph'
 import AudioPitchRecorder from './AudioPitchRecorder'
 import styles from './SimScreen.module.css'
@@ -53,6 +53,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
   const [currentRound, setCurrentRound]     = useState(initialRound ?? 0)
   const [roundQuestions, setRoundQuestions] = useState<RoundQuestion[]>([])
   const [paused, setPaused]                 = useState(false)
+  const [muted, setMuted_]                  = useState(false)
   const [responseMode, setResponseMode]     = useState<'type' | 'voice'>('type')
 
   // Interrupt response state
@@ -89,6 +90,12 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
   useEffect(() => { rfAnswerRef.current = rfAnswer }, [rfAnswer])
   useEffect(() => { currentRoundRef.current = currentRound }, [currentRound])
 
+  // ── Sync mute state to tts module ─────────────────────────────────────────
+  useEffect(() => {
+    setMuted(muted)
+    if (muted) cancelCurrentTTS()
+  }, [muted])
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { init() }, [])
 
@@ -99,6 +106,23 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
       onProgress(historyRef.current, currentRoundRef.current)
     }, 10_000)
     return () => clearInterval(id)
+  }, [onProgress])
+
+  // ── Save immediately when user leaves / hides the tab ────────────────────
+  useEffect(() => {
+    if (!onProgress) return
+    const saveNow = () => {
+      onProgress(historyRef.current, currentRoundRef.current)
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') saveNow()
+    }
+    window.addEventListener('beforeunload', saveNow)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('beforeunload', saveNow)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [onProgress])
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -450,6 +474,14 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
         </div>
 
         <div className={styles.headerRight}>
+          <button
+            className={styles.muteBtn}
+            onClick={() => setMuted_(m => !m)}
+            title={muted ? 'Unmute audio' : 'Mute audio'}
+            aria-label={muted ? 'Unmute audio' : 'Mute audio'}
+          >
+            {muted ? '🔇' : '🔊'}
+          </button>
           <button
             className={styles.pauseBtn}
             onClick={() => setPaused(p => !p)}

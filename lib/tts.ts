@@ -1,6 +1,11 @@
 // Module-level handles so we can cancel mid-sentence
 let _audioEl: HTMLAudioElement | null = null
 let _synthActive = false
+let _muted = false
+
+/** Mute or unmute all TTS output globally. */
+export function setMuted(v: boolean): void { _muted = v }
+export function isMuted(): boolean { return _muted }
 
 /** Stop whatever TTS is currently playing. Safe to call at any time. */
 export function cancelCurrentTTS(): void {
@@ -74,6 +79,7 @@ export async function speakSentence(
   webSpeechRate  = 1.0
 ): Promise<void> {
   if (!text.trim()) return
+  if (_muted) return
   try {
     if (elevenLabsKey) {
       await speakWithElevenLabs(text, voiceId, elevenLabsKey)
