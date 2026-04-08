@@ -1,98 +1,212 @@
 'use client'
 import { useEffect, useState } from 'react'
-import type { SimConfig, Verdict } from '@/lib/types'
+import type { SimConfig, Verdict, CoreCriterion, CaseSpecificCriterion } from '@/lib/types'
 import styles from './VerdictScreen.module.css'
 
 interface Props { verdict: Verdict; config: SimConfig; onRestart: () => void }
 
-const STANCE_LABEL: Record<string, string> = {
-  approve: '✓ Approve', reject: '✗ Reject', conditional: '◎ Conditional',
+const CORE_CRITERIA: { key: keyof Verdict['core']; label: string; weight: number }[] = [
+  { key: 'communicationSkills',    label: 'Communication Skills',     weight: 15 },
+  { key: 'criticalThinking',       label: 'Critical Thinking',        weight: 15 },
+  { key: 'subjectMastery',         label: 'Subject Mastery',          weight: 15 },
+  { key: 'confidencePresence',     label: 'Confidence & Presence',    weight: 10 },
+  { key: 'adaptability',           label: 'Adaptability',             weight: 10 },
+  { key: 'composureUnderPressure', label: 'Composure Under Pressure', weight: 10 },
+  { key: 'authenticity',           label: 'Authenticity',             weight:  5 },
+  { key: 'engagementInteraction',  label: 'Engagement & Interaction', weight:  5 },
+  { key: 'problemSolvingAbility',  label: 'Problem-Solving Ability',  weight: 10 },
+  { key: 'overallImpact',          label: 'Overall Impact',           weight:  5 },
+]
+
+const TIER_LABELS: Record<string, string> = {
+  exceptional:  'Exceptional — Top Tier',
+  strong:       'Strong',
+  competitive:  'Competitive',
+  average:      'Average',
+  below:        'Below Expectations',
 }
-const STANCE_COLOR: Record<string, string> = {
-  approve: '#50a040', reject: '#c04040', conditional: '#c8962a',
+
+function ScoreBar({ score, animated }: { score: number; animated: boolean }) {
+  const pct = Math.min(100, Math.max(0, (score / 5) * 100))
+  return (
+    <div className={styles.barBg}>
+      <div className={styles.barFill} style={{ width: animated ? `${pct}%` : '0%' }} />
+      <span className={styles.barScore}>{score}/5</span>
+    </div>
+  )
 }
 
 export default function VerdictScreen({ verdict, config, onRestart }: Props) {
-  const [scored, setScored] = useState(false)
-  useEffect(() => { setTimeout(() => setScored(true), 400) }, [])
+  const [animated, setAnimated] = useState(false)
+  useEffect(() => { setTimeout(() => setAnimated(true), 300) }, [])
 
-  const getP = (name: string, i: number) =>
-    config.panelists.find(p => p.name === name) ?? config.panelists[i] ?? config.panelists[0]
+  const totalPct = Math.min(100, Math.max(0, verdict.totalScore))
 
   return (
     <div className={styles.wrap}>
-      <header className={styles.header}>
-        <span className={styles.headerTitle}>Session Report</span>
-        <button className={styles.ghostBtn} onClick={onRestart}>← New session</button>
+
+      {/* ── Top bar ── */}
+      <header className={styles.topBar}>
+        <span className={styles.topBarTitle}>Universal Panel Evaluation Report</span>
+        <button className={styles.restartBtn} onClick={onRestart}>← New session</button>
       </header>
 
-      <div className={styles.content}>
+      <div className={styles.scroll}>
 
-        {/* Overall */}
-        <div className={styles.overallBlock}>
-          <div className={styles.overallNum}>{verdict.overall}</div>
-          <div className={styles.overallLabel}>OVERALL SCORE / 100</div>
-          <p className={styles.overallVerdict}>"{verdict.verdict}"</p>
-        </div>
+        {/* ── Hero score ── */}
+        <section className={styles.hero}>
+          <div className={styles.heroScore}>
+            <div
+              className={styles.heroRing}
+              style={{ '--pct': `${animated ? totalPct : 0}%` } as React.CSSProperties}
+            >
+              <span className={styles.heroNum}>{verdict.totalScore}</span>
+              <span className={styles.heroOf}>/100</span>
+            </div>
+          </div>
+          <div className={styles.heroMeta}>
+            <div className={styles.heroTier}>{TIER_LABELS[verdict.recommendation] ?? verdict.recommendation}</div>
+            <div className={styles.heroBreakdown}>
+              <span>Core <strong>{verdict.coreScore}</strong>/75</span>
+              <span className={styles.heroDivider}>·</span>
+              <span>Case-specific <strong>{verdict.caseSpecificScore}</strong>/25</span>
+            </div>
+          </div>
+        </section>
 
-        {/* Panelist breakdown */}
+        {/* ── Core evaluation ── */}
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Panelist Breakdown</h2>
-          {verdict.members.map((m, i) => {
-            const p = getP(m.name, i)
-            return (
-              <div key={i} className={styles.memberCard}>
-                <div className={styles.mHeader}>
-                  <div className={styles.mAvatar} style={{ background: p.bg, borderColor: p.bd }}>{p.avatar}</div>
-                  <div className={styles.mMeta}>
-                    <span className={styles.mName} style={{ color: p.color }}>{m.name}</span>
-                    <span className={styles.mStance} style={{ color: STANCE_COLOR[m.stance] ?? '#c8962a' }}>
-                      {STANCE_LABEL[m.stance] ?? m.stance}
-                    </span>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionLabel}>Core Evaluation</span>
+            <span className={styles.sectionWeight}>75%</span>
+          </div>
+
+          <div className={styles.coreGrid}>
+            {CORE_CRITERIA.map(({ key, label, weight }) => {
+              const c: CoreCriterion = verdict.core?.[key] ?? { score: 0, notes: '' }
+              return (
+                <div key={key} className={styles.coreItem}>
+                  <div className={styles.coreTop}>
+                    <span className={styles.coreLabel}>{label}</span>
+                    <span className={styles.coreWeight}>{weight}%</span>
                   </div>
-                  <span className={styles.mScore}>{m.score}/100</span>
+                  <ScoreBar score={c.score} animated={animated} />
+                  {c.notes && <p className={styles.coreNotes}>{c.notes}</p>}
                 </div>
-                <div className={styles.mBarBg}>
-                  <div className={styles.mBar} style={{ width: scored ? `${m.score}%` : '0%', background: p.color }} />
+              )
+            })}
+          </div>
+        </section>
+
+        {/* ── Case-specific evaluation ── */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionLabel}>Case-Specific Evaluation</span>
+            <span className={styles.sectionWeight}>25%</span>
+          </div>
+
+          {verdict.caseSpecific?.justification && (
+            <div className={styles.caseJustification}>
+              <div className={styles.caseJLabel}>Evaluator justification</div>
+              <p>{verdict.caseSpecific.justification}</p>
+            </div>
+          )}
+
+          {verdict.caseSpecific?.contextPerformance && (
+            <div className={styles.caseContext}>
+              <div className={styles.caseJLabel}>Context performance</div>
+              <p>{verdict.caseSpecific.contextPerformance}</p>
+            </div>
+          )}
+
+          <div className={styles.caseGrid}>
+            {(verdict.caseSpecific?.criteria ?? []).map((c: CaseSpecificCriterion, i: number) => (
+              <div key={i} className={styles.caseItem}>
+                <div className={styles.coreTop}>
+                  <span className={styles.coreLabel}>{c.name}</span>
+                  <span className={styles.coreWeight}>{c.weight}%</span>
                 </div>
-                <p className={styles.mSummary}>"{m.summary}"</p>
-                {m.keyQuotes?.length > 0 && (
-                  <div className={styles.quotes}>
-                    {m.keyQuotes.map((q, qi) => (
-                      <div key={qi} className={styles.quote} style={{ borderLeftColor: p.color + '60' }}>"{q}"</div>
-                    ))}
-                  </div>
-                )}
+                <ScoreBar score={c.score} animated={animated} />
+                {c.notes && <p className={styles.coreNotes}>{c.notes}</p>}
               </div>
-            )
-          })}
+            ))}
+          </div>
         </section>
 
-        {/* Strengths & Concerns */}
-        <div className={styles.twoCol}>
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle} style={{ color: '#50a040' }}>Strengths</h2>
-            <ul className={styles.list}>
-              {verdict.strengths?.map((s, i) => <li key={i} className={styles.listItem}>{s}</li>)}
-            </ul>
-          </section>
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle} style={{ color: '#c04040' }}>Concerns</h2>
-            <ul className={styles.list}>
-              {verdict.concerns?.map((c, i) => <li key={i} className={styles.listItem}>{c}</li>)}
-            </ul>
-          </section>
+        {/* ── Final summary ── */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionLabel}>Final Summary</span>
+          </div>
+
+          <div className={styles.summaryGrid}>
+            <div className={styles.summaryBlock}>
+              <div className={styles.summaryBlockTitle}>Top Strengths</div>
+              <ul className={styles.summaryList}>
+                {(verdict.summary?.topStrengths ?? []).map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className={styles.summaryBlock}>
+              <div className={styles.summaryBlockTitle}>Areas for Improvement</div>
+              <ul className={styles.summaryList}>
+                {(verdict.summary?.areasForImprovement ?? []).map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className={styles.summaryRow}>
+            <div className={styles.summaryCard}>
+              <div className={styles.summaryCardLabel}>Standout Moment</div>
+              <p>{verdict.summary?.standoutMoment ?? '—'}</p>
+            </div>
+            <div className={`${styles.summaryCard} ${styles.summaryCardRisk}`}>
+              <div className={styles.summaryCardLabel}>Biggest Risk / Concern</div>
+              <p>{verdict.summary?.biggestRisk ?? '—'}</p>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Final scoring table ── */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionLabel}>Final Scoring</span>
+          </div>
+
+          <div className={styles.scoringTable}>
+            <div className={styles.scoringRow}>
+              <span>Core Score (out of 75)</span>
+              <span className={styles.scoringValue}>{verdict.coreScore}</span>
+            </div>
+            <div className={styles.scoringRow}>
+              <span>Case-Specific Score (out of 25)</span>
+              <span className={styles.scoringValue}>{verdict.caseSpecificScore}</span>
+            </div>
+            <div className={`${styles.scoringRow} ${styles.scoringTotal}`}>
+              <span>Total Score (out of 100)</span>
+              <span className={styles.scoringValue}>{verdict.totalScore}</span>
+            </div>
+          </div>
+
+          <div className={styles.recBlock}>
+            <div className={styles.recLabel}>Final Recommendation</div>
+            <div className={styles.recValue}>{TIER_LABELS[verdict.recommendation] ?? verdict.recommendation}</div>
+          </div>
+        </section>
+
+        <div className={styles.footer}>
+          <button className={styles.newSessionBtn} onClick={onRestart}>
+            Run Another Session ↗
+          </button>
+          <p className={styles.footerNote}>
+            Powered by PitchWars — Universal Panel Evaluation Report
+          </p>
         </div>
 
-        {/* Recommendations */}
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Recommendations</h2>
-          <ol className={styles.orderedList}>
-            {verdict.recommendations?.map((r, i) => <li key={i} className={styles.listItem}>{r}</li>)}
-          </ol>
-        </section>
-
-        <button className={styles.restartBtn} onClick={onRestart}>RUN ANOTHER SESSION ↗</button>
       </div>
     </div>
   )

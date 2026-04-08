@@ -1,3 +1,9 @@
+/**
+ * /api/verdict — Universal Panel Evaluation Report
+ *
+ * Evaluates the PRESENTER's performance based on their answers across all rounds.
+ * Uses the Universal Panel Evaluation rubric: 75% core + 25% case-specific.
+ */
 import { NextRequest, NextResponse } from 'next/server'
 import { createTextClient } from '@/lib/ai-client'
 import type { Panelist, Message } from '@/lib/types'
@@ -6,55 +12,131 @@ export async function POST(req: NextRequest) {
   const headers = Object.fromEntries(req.headers.entries())
   const client = createTextClient(headers)
 
-  const { panelists, history }: { panelists: Panelist[]; history: Message[] } = await req.json()
+  const {
+    panelists,
+    history,
+  }: {
+    panelists: Panelist[]
+    history: Message[]
+  } = await req.json()
 
-  const names = panelists.map(p => p.name).join(', ')
-  const transcript = history.map(m => `${m.speaker ?? m.role}: ${m.content}`).join('\n\n')
+  // Panel questions (public panelist messages only)
+  const panelQuestions = history
+    .filter(m => m.role === 'assistant' && !m.content.startsWith('[Internal'))
+    .map(m => `${m.speaker ?? 'Panelist'} (Round ${(m.round ?? 0) + 1}): ${m.content.slice(0, 400)}`)
+    .join('\n\n')
 
-  const raw = await client.createMessage(
-    `You are a neutral session coordinator generating a structured verdict for a panel evaluation.
-Respond ONLY with raw JSON — no markdown, no backticks.
-Format exactly:
+  // Presenter answers only
+  const presenterAnswers = history
+    .filter(m => m.role === 'user' && m.speaker === 'You')
+    .map(m => `Round ${(m.round ?? 0) + 1}: ${m.content}`)
+    .join('\n\n')
+
+  const system = `You are a panel of expert evaluators completing a Universal Panel Evaluation Report.
+Evaluate the PRESENTER's performance based on how they answered the panel questions.
+
+PANEL QUESTIONS ASKED:
+${panelQuestions || '(no questions recorded)'}
+
+PRESENTER'S ANSWERS:
+${presenterAnswers || '(presenter did not provide answers — score accordingly)'}
+
+=== UNIVERSAL PANEL EVALUATION RUBRIC ===
+
+CORE EVALUATION (75 points total):
+Score each criterion 1–5. Weighted core score = sum of (score/5 × weight% × 75).
+Criteria and weights (sum = 100%, applied to the 75-point core):
+- communicationSkills    15%
+- criticalThinking       15%
+- subjectMastery         15%
+- confidencePresence     10%
+- adaptability           10%
+- composureUnderPressure 10%
+- authenticity            5%
+- engagementInteraction   5%
+- problemSolvingAbility  10%
+- overallImpact           5%
+
+CASE-SPECIFIC EVALUATION (25 points total):
+Choose 2–4 criteria relevant to this specific pitch/context. Weights must sum to exactly 25.
+Case-specific score = sum of (score/5 × weight).
+
+RECOMMENDATION TIERS: exceptional ≥90 / strong 75–89 / competitive 60–74 / average 45–59 / below <45
+
+Return ONLY a single valid JSON object — no markdown, no commentary:
 {
-  "overall": <number 0-100>,
-  "verdict": "<2-3 sentence collective verdict>",
-  "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
-  "concerns": ["<concern 1>", "<concern 2>", "<concern 3>"],
-  "recommendations": ["<recommendation 1>", "<recommendation 2>", "<recommendation 3>"],
-  "members": [
-    {
-      "name": "<panelist name>",
-      "score": <0-100>,
-      "summary": "<one sentence from this panelist perspective>",
-      "keyQuotes": ["<direct quote from transcript>", "<direct quote from transcript>"],
-      "stance": "<approve|reject|conditional>"
-    }
-  ]
-}
-Base scores on strength of the idea, quality of arguments, and how well objections were addressed.`,
-    [{
-      role: 'user',
-      content: `Panel members: ${names}\n\nFull transcript:\n${transcript}\n\nGenerate the final verdict JSON.`
-    }],
-    900
-  )
+  "core": {
+    "communicationSkills":    {"score": 3, "notes": "..."},
+    "criticalThinking":       {"score": 3, "notes": "..."},
+    "subjectMastery":         {"score": 3, "notes": "..."},
+    "confidencePresence":     {"score": 3, "notes": "..."},
+    "adaptability":           {"score": 3, "notes": "..."},
+    "composureUnderPressure": {"score": 3, "notes": "..."},
+    "authenticity":           {"score": 3, "notes": "..."},
+    "engagementInteraction":  {"score": 3, "notes": "..."},
+    "problemSolvingAbility":  {"score": 3, "notes": "..."},
+    "overallImpact":          {"score": 3, "notes": "..."}
+  },
+  "caseSpecific": {
+    "justification": "Why these criteria were chosen for this context.",
+    "contextPerformance": "How the presenter performed relative to this context.",
+    "criteria": [
+      {"name": "...", "weight": 12, "score": 3, "notes": "..."},
+      {"name": "...", "weight": 13, "score": 3, "notes": "..."}
+    ]
+  },
+  "summary": {
+    "topStrengths":        ["...", "...", "..."],
+    "areasForImprovement": ["...", "...", "..."],
+    "standoutMoment": "...",
+    "biggestRisk": "..."
+  },
+  "coreScore": 45,
+  "caseSpecificScore": 15,
+  "totalScore": 60,
+  "recommendation": "average"
+}`
 
   try {
-    const verdict = JSON.parse(raw.replace(/```json|```/g, '').trim())
+    const raw = await client.createMessage(
+      system,
+      [{ role: 'user', content: 'Generate the evaluation report JSON now.' }],
+      1400
+    )
+    const clean = raw.replace(/```json|```/g, '').trim()
+    const verdict = JSON.parse(clean)
     return NextResponse.json(verdict)
-  } catch {
+  } catch (err) {
+    console.error('verdict error:', err)
+    const fallbackCriterion = { score: 3, notes: 'Unable to evaluate — insufficient session data.' }
     return NextResponse.json({
-      overall: 68,
-      verdict: 'The panel engaged substantively with the submission.',
-      strengths: ['Clear problem articulation', 'Credible team', 'Growing market'],
-      concerns: ['Monetization unclear', 'Competitive moat thin', 'Timeline ambitious'],
-      recommendations: ['Define revenue model', 'Identify key differentiators', 'Reduce scope for MVP'],
-      members: panelists.map(p => ({
-        name: p.name, score: 68,
-        summary: 'Engaged critically with the submitted material.',
-        keyQuotes: [],
-        stance: 'conditional' as const,
-      })),
+      core: {
+        communicationSkills:    fallbackCriterion,
+        criticalThinking:       fallbackCriterion,
+        subjectMastery:         fallbackCriterion,
+        confidencePresence:     fallbackCriterion,
+        adaptability:           fallbackCriterion,
+        composureUnderPressure: fallbackCriterion,
+        authenticity:           fallbackCriterion,
+        engagementInteraction:  fallbackCriterion,
+        problemSolvingAbility:  fallbackCriterion,
+        overallImpact:          fallbackCriterion,
+      },
+      caseSpecific: {
+        justification: 'Evaluation could not be completed.',
+        contextPerformance: '',
+        criteria: [{ name: 'General Performance', weight: 25, score: 3, notes: '' }],
+      },
+      summary: {
+        topStrengths:        ['Engaged with the panel'],
+        areasForImprovement: ['More detailed answers needed'],
+        standoutMoment: 'N/A',
+        biggestRisk: 'Insufficient response data',
+      },
+      coreScore: 45,
+      caseSpecificScore: 15,
+      totalScore: 60,
+      recommendation: 'average',
     })
   }
 }

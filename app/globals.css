@@ -1,19 +1,25 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --gold: #c8962a;
-  --gold-light: #e0a830;
-  --bg: #0d0d0f;
-  --surface: #111010;
-  --surface2: #161514;
-  --border: #1e1c1a;
-  --border2: #2a2826;
-  --text: #e8e2d6;
-  --text-muted: #8b7355;
-  --text-dim: #5a5550;
-  --text-faint: #3a3630;
-  --gold-bg: #1a1007;
-  --gold-border: #3d2e10;
+  /* ── Black & White palette ── */
+  --gold:        #e8e8e8;
+  --gold-light:  #ffffff;
+  --bg:          #000000;
+  --surface:     #0a0a0a;
+  --surface2:    #111111;
+  --border:      #1c1c1c;
+  --border2:     #262626;
+  --text:        #eeeeee;
+  --text-muted:  #666666;
+  --text-dim:    #444444;
+  --text-faint:  #282828;
+  --gold-bg:     #0d0d0d;
+  --gold-border: #303030;
+
+  /* semantic aliases */
+  --accent:        var(--gold);
+  --accent-border: var(--gold-border);
+  --input-bg:      #050505;
 }
 
 html, body {
@@ -24,17 +30,17 @@ html, body {
 }
 
 h1, h2, h3 {
-  font-family: 'Playfair Display', serif;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: #f5eed8;
+  font-family: 'DM Mono', monospace;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #ffffff;
 }
 
 .mono { font-family: 'DM Mono', monospace; }
 
 input, textarea {
   width: 100%;
-  background: var(--bg);
+  background: var(--input-bg);
   border: 1px solid var(--border2);
   border-radius: 6px;
   color: var(--text);
@@ -45,7 +51,7 @@ input, textarea {
   transition: border-color 0.2s;
 }
 input:focus, textarea:focus { border-color: var(--gold-border); }
-input::placeholder, textarea::placeholder { color: var(--text-faint); }
+input::placeholder, textarea::placeholder { color: var(--text-dim); }
 textarea { resize: vertical; line-height: 1.6; }
 
 button { cursor: pointer; font-family: 'DM Mono', monospace; }
@@ -63,8 +69,8 @@ button { cursor: pointer; font-family: 'DM Mono', monospace; }
 
 .cursor {
   display: inline-block;
-  width: 7px; height: 13px;
-  background: var(--gold);
+  width: 2px; height: 14px;
+  background: #ffffff;
   vertical-align: text-bottom;
-  animation: blink 0.8s step-end infinite;
+  animation: blink 0.9s step-end infinite;
 }

@@ -18,21 +18,57 @@ export interface Message {
   round?: number
 }
 
-export interface VerdictMember {
+/* ── Universal Panel Evaluation Report ── */
+
+export interface CoreCriterion {
+  score: number   // 1–5
+  notes: string
+}
+
+export interface CaseSpecificCriterion {
   name: string
-  score: number
-  summary: string
-  keyQuotes: string[]
-  stance: 'approve' | 'reject' | 'conditional'
+  weight: number  // percentage, criteria weights sum to 25
+  score: number   // 1–5
+  notes: string
 }
 
 export interface Verdict {
-  overall: number
-  verdict: string
-  members: VerdictMember[]
-  strengths: string[]
-  concerns: string[]
-  recommendations: string[]
+  /** CORE EVALUATION — 75 pts total */
+  core: {
+    communicationSkills:    CoreCriterion   // 15%
+    criticalThinking:       CoreCriterion   // 15%
+    subjectMastery:         CoreCriterion   // 15%
+    confidencePresence:     CoreCriterion   // 10%
+    adaptability:           CoreCriterion   // 10%
+    composureUnderPressure: CoreCriterion   // 10%
+    authenticity:           CoreCriterion   //  5%
+    engagementInteraction:  CoreCriterion   //  5%
+    problemSolvingAbility:  CoreCriterion   // 10%
+    overallImpact:          CoreCriterion   //  5%
+  }
+
+  /** CASE-SPECIFIC EVALUATION — 25 pts total */
+  caseSpecific: {
+    justification:      string                    // why these criteria
+    contextPerformance: string                    // overall context assessment
+    criteria:           CaseSpecificCriterion[]   // 2–4 criteria, weights sum to 25
+  }
+
+  /** FINAL SUMMARY */
+  summary: {
+    topStrengths:        string[]
+    areasForImprovement: string[]
+    standoutMoment:      string
+    biggestRisk:         string
+  }
+
+  /** SCORES */
+  coreScore:         number   // out of 75
+  caseSpecificScore: number   // out of 25
+  totalScore:        number   // out of 100
+
+  /** RECOMMENDATION TIER */
+  recommendation: 'exceptional' | 'strong' | 'competitive' | 'average' | 'below'
 }
 
 export interface SimConfig {

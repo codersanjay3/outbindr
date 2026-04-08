@@ -14,33 +14,24 @@ interface Props {
 }
 
 type Phase =
-  | 'thinking'    // LLM call in progress, dots showing
-  | 'speaking'    // Streaming + TTS playing, interrupt available
-  | 'user-turn'   // Investor done, waiting for user reply/skip
-  | 'round-summary' // End of round — quick question recap
-  | 'report'      // All rounds done, generating verdict
+  | 'thinking'      // deliberating + awaiting stream
+  | 'speaking'      // streaming text + TTS
+  | 'round-turn'    // all panelists done — show summary + user input
+  | 'report'        // generating final verdict
 
 interface HistoryMsg {
-  speaker: string
-  avatar: string
-  color: string
-  bg: string
-  bd: string
-  text: string
-  round: number
-  isUser?: boolean
+  speaker: string; avatar: string; color: string; bg: string; bd: string
+  text: string; round: number; isUser?: boolean
 }
 
-interface RoundSummaryItem {
-  name: string
-  avatar: string
-  color: string
-  question: string
+interface RoundQuestion {
+  name: string; avatar: string; color: string; question: string
 }
 
 export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Props) {
   const { panelists, rounds } = config
 
+  // ── UI state ───────────────────────────────────────────────────────────────
   const [phase, setPhase]                   = useState<Phase>('thinking')
   const [activePanelist, setActivePanelist] = useState<Panelist | null>(null)
   const [streamingText, setStreamingText]   = useState('')
@@ -50,27 +41,26 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
   const [userReply, setUserReply]           = useState('')
   const [edges, setEdges]                   = useState<GraphEdge[]>([])
   const [currentRound, setCurrentRound]     = useState(0)
-  const [roundSummary, setRoundSummary]     = useState<RoundSummaryItem[] | null>(null)
+  const [roundQuestions, setRoundQuestions] = useState<RoundQuestion[]>([])
   const [paused, setPaused]                 = useState(false)
 
-  // Stable refs — won't cause re-renders
-  const historyRef          = useRef<Message[]>([])
-  const ideaRef             = useRef('')
-  const ideaB64Ref          = useRef('')
-  const ideaMimeRef         = useRef('')
-  const pausedRef           = useRef(false)
-  const interruptRef        = useRef(false)
-  const abortControllerRef  = useRef<AbortController | null>(null)
-  const resolveUserTurnRef  = useRef<((reply: string) => void) | null>(null)
-  const resolveRoundRef     = useRef<(() => void) | null>(null)
-  const userReplyRef        = useRef('')
+  // ── Stable refs ────────────────────────────────────────────────────────────
+  const historyRef         = useRef<Message[]>([])
+  const ideaRef            = useRef('')
+  const ideaB64Ref         = useRef('')
+  const ideaMimeRef        = useRef('')
+  const pausedRef          = useRef(false)
+  const interruptRef       = useRef(false)
+  const abortRef           = useRef<AbortController | null>(null)
+  const resolveUserTurnRef = useRef<((reply: string) => void) | null>(null)
+  const userReplyRef       = useRef('')
 
   useEffect(() => { pausedRef.current = paused }, [paused])
   useEffect(() => { userReplyRef.current = userReply }, [userReply])
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadAndRun() }, [])
+  useEffect(() => { init() }, [])
 
-  // ─── helpers ──────────────────────────────────────────────────────────────
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
   const waitIfPaused = () =>
     new Promise<void>(resolve => {
@@ -80,9 +70,6 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
 
   const waitForUserTurn = (): Promise<string> =>
     new Promise(resolve => { resolveUserTurnRef.current = resolve })
-
-  const waitForRoundAdvance = (): Promise<void> =>
-    new Promise(resolve => { resolveRoundRef.current = resolve })
 
   const handleUserSubmit = useCallback(() => {
     const reply = userReplyRef.current.trim()
@@ -94,40 +81,36 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
   const handleInterrupt = useCallback(() => {
     interruptRef.current = true
     cancelCurrentTTS()
-    abortControllerRef.current?.abort()
+    abortRef.current?.abort()
   }, [])
 
-  /** Detect when a panelist mentions another by name — updates graph edges */
+  /** Light up a graph edge when one panelist mentions another */
   const detectEdges = useCallback((speakerName: string, text: string) => {
     setEdges(prev => {
       const next = [...prev]
       for (const p of panelists) {
         if (p.name === speakerName) continue
-        const firstName = p.name.split(' ')[0]
-        if (
-          text.includes(p.name) ||
-          text.toLowerCase().includes(firstName.toLowerCase())
-        ) {
-          const existing = next.find(e => e.from === speakerName && e.to === p.name)
-          if (existing) existing.active = true
+        const first = p.name.split(' ')[0]
+        if (text.includes(p.name) || text.toLowerCase().includes(first.toLowerCase())) {
+          const ex = next.find(e => e.from === speakerName && e.to === p.name)
+          if (ex) ex.active = true
           else next.push({ from: speakerName, to: p.name, active: true })
         }
       }
-      // Dim all other edges after new ones light up
       return next.map(e => (e.from === speakerName ? e : { ...e, active: false }))
     })
   }, [panelists])
 
-  /** Pull the last question sentence out of a panelist's response */
+  /** Pull the clearest question sentence from a panelist turn */
   const extractQuestion = (text: string): string => {
     const sentences = text.match(/[^.!?]+[.!?]+/g) || [text]
     const q = [...sentences].reverse().find(s => s.includes('?'))
-    return (q || sentences[sentences.length - 1])?.trim() || text.slice(0, 120)
+    return (q || sentences[sentences.length - 1])?.trim() || text.slice(0, 150)
   }
 
-  // ─── init ─────────────────────────────────────────────────────────────────
+  // ── Init ───────────────────────────────────────────────────────────────────
 
-  const loadAndRun = async () => {
+  const init = async () => {
     if (ideaFile) {
       if (ideaFile.type === 'application/pdf') {
         const ab = await ideaFile.arrayBuffer()
@@ -139,17 +122,17 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
     } else {
       ideaRef.current = ideaText
     }
-    runSimulation()
+    run()
   }
 
-  // ─── main orchestration loop ───────────────────────────────────────────────
+  // ── Main simulation loop ───────────────────────────────────────────────────
 
-  const runSimulation = async () => {
+  const run = async () => {
     const keys = loadKeys()
 
     for (let r = 0; r < rounds; r++) {
       setCurrentRound(r)
-      const roundMsgs: { name: string; avatar: string; color: string; text: string }[] = []
+      const roundQs: RoundQuestion[] = []
 
       for (let pi = 0; pi < panelists.length; pi++) {
         await waitIfPaused()
@@ -161,15 +144,43 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
         setPhase('thinking')
         interruptRef.current = false
 
-        // ── fetch stream ───────────────────────────────────────────────────
-        abortControllerRef.current = new AbortController()
+        // ── STEP 1: Internal deliberation (hidden — more tokens allowed) ────
+        if (!isFirst) {
+          try {
+            const dr = await fetch('/api/deliberate', {
+              method: 'POST',
+              headers: apiHeaders(keys),
+              body: JSON.stringify({
+                panelist: p,
+                allPanelists: panelists,
+                ideaText: ideaRef.current,
+                history: historyRef.current,
+                round: r,
+                totalRounds: rounds,
+              }),
+            })
+            const { deliberation } = await dr.json()
+            if (deliberation) {
+              // Add to context so other panelists can see it — NEVER displayed to user
+              historyRef.current.push({
+                role: 'assistant',
+                content: `[Internal deliberation by ${p.name}]: ${deliberation}`,
+                speaker: p.name,
+                round: r,
+              })
+            }
+          } catch { /* silently skip — not critical */ }
+        }
+
+        // ── STEP 2: Public response — short, streamed, spoken ────────────
+        abortRef.current = new AbortController()
         let res: Response
 
         try {
           res = await fetch('/api/simulate', {
             method: 'POST',
             headers: apiHeaders(keys),
-            signal: abortControllerRef.current.signal,
+            signal: abortRef.current.signal,
             body: JSON.stringify({
               panelist: p,
               allPanelists: panelists,
@@ -177,23 +188,14 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
               ideaBase64:   ideaB64Ref.current  || undefined,
               ideaMimeType: ideaMimeRef.current || undefined,
               history: historyRef.current,
-              round: r,
-              totalRounds: rounds,
-              isFirst,
+              round: r, totalRounds: rounds, isFirst,
             }),
           })
         } catch (e) {
-          if (e instanceof Error && e.name === 'AbortError') {
-            // Interrupted before stream even started
-            setPhase('user-turn')
-            const reply = await waitForUserTurn()
-            if (reply) pushUserReply(reply, r)
-            continue
-          }
+          if (e instanceof Error && e.name === 'AbortError') continue
           throw e
         }
 
-        // ── stream + TTS pipeline ─────────────────────────────────────────
         const reader  = res.body!.getReader()
         const decoder = new TextDecoder()
         let fullText  = ''
@@ -205,14 +207,8 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
           for (const s of sentences) {
             if (interruptRef.current) break
             setSubtitle(s)
-            await speakSentence(
-              s,
-              p.voiceId,
-              p.webSpeechVoice,
-              keys.elevenlabs || null,
-              p.webSpeechPitch,
-              p.webSpeechRate
-            )
+            await speakSentence(s, p.voiceId, p.webSpeechVoice, keys.elevenlabs || null,
+              p.webSpeechPitch, p.webSpeechRate)
             await waitIfPaused()
           }
           return remainder
@@ -234,121 +230,84 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
           if (!(e instanceof Error && e.name === 'AbortError')) throw e
         }
 
-        // Flush any leftover TTS buffer (unless interrupted)
         if (!interruptRef.current && ttsBuf.trim()) {
           setSubtitle(ttsBuf.trim())
-          await speakSentence(
-            ttsBuf.trim(),
-            p.voiceId,
-            p.webSpeechVoice,
-            keys.elevenlabs || null,
-            p.webSpeechPitch,
-            p.webSpeechRate
-          )
+          await speakSentence(ttsBuf.trim(), p.voiceId, p.webSpeechVoice, keys.elevenlabs || null,
+            p.webSpeechPitch, p.webSpeechRate)
         }
-
         setSubtitle('')
 
-        // ── save to history ───────────────────────────────────────────────
         if (fullText) {
-          historyRef.current.push({
-            role: 'assistant',
-            content: fullText,
-            speaker: p.name,
-            round: r,
-          })
+          historyRef.current.push({ role: 'assistant', content: fullText, speaker: p.name, round: r })
           setHistoryMsgs(prev => [...prev, {
             speaker: p.name, avatar: p.avatar, color: p.color,
             bg: p.bg, bd: p.bd, text: fullText, round: r,
           }])
-          roundMsgs.push({ name: p.name, avatar: p.avatar, color: p.color, text: fullText })
+          roundQs.push({ name: p.name, avatar: p.avatar, color: p.color, question: extractQuestion(fullText) })
         }
 
-        // ── user turn ─────────────────────────────────────────────────────
-        setPhase('user-turn')
-        const reply = await waitForUserTurn()
-        if (reply) pushUserReply(reply, r)
+        // Brief pause between panelists
+        await new Promise(r => setTimeout(r, 400))
       }
 
-      // ── round summary ──────────────────────────────────────────────────
-      const summaryItems: RoundSummaryItem[] = roundMsgs.map(m => ({
-        name: m.name,
-        avatar: m.avatar,
-        color: m.color,
-        question: extractQuestion(m.text),
-      }))
-
+      // ── END OF ROUND: combined summary + user turn ───────────────────────
       setActivePanelist(null)
       setStreamingText('')
-      setRoundSummary(summaryItems)
-      setPhase('round-summary')
+      setRoundQuestions(roundQs)
+      setPhase('round-turn')
 
-      // Auto-advance after 5 s; user can also click Continue
-      await Promise.race([
-        waitForRoundAdvance(),
-        new Promise<void>(resolve => setTimeout(resolve, 5000)),
-      ])
-      resolveRoundRef.current = null
-      setRoundSummary(null)
+      const reply = await waitForUserTurn()
+      if (reply) {
+        historyRef.current.push({ role: 'user', content: reply, speaker: 'You', round: r })
+        setHistoryMsgs(prev => [...prev, {
+          speaker: 'You', avatar: '💬', color: '#ffffff',
+          bg: 'rgba(255,255,255,0.04)', bd: 'rgba(255,255,255,0.1)',
+          text: reply, round: r, isUser: true,
+        }])
+      }
+      setRoundQuestions([])
     }
 
-    // ── generate final report ──────────────────────────────────────────────
+    // ── Generate final evaluation report ──────────────────────────────────
     setActivePanelist(null)
     setStreamingText('')
     setPhase('report')
 
     const keys2 = loadKeys()
-    const reportRes = await fetch('/api/verdict', {
+    const vRes = await fetch('/api/verdict', {
       method: 'POST',
       headers: apiHeaders(keys2),
       body: JSON.stringify({ panelists, history: historyRef.current }),
     })
-    const verdict: Verdict = await reportRes.json()
+    const verdict = await vRes.json()
     onVerdict(verdict)
   }
 
-  const pushUserReply = (reply: string, round: number) => {
-    historyRef.current.push({ role: 'user', content: reply, speaker: 'You', round })
-    setHistoryMsgs(prev => [...prev, {
-      speaker: 'You', avatar: '💬', color: '#c8962a',
-      bg: 'rgba(200,150,42,0.07)', bd: 'rgba(200,150,42,0.2)',
-      text: reply, round, isUser: true,
-    }])
-  }
+  // ── Render ─────────────────────────────────────────────────────────────────
 
-  // ─── render ────────────────────────────────────────────────────────────────
-
-  const isUserTurn   = phase === 'user-turn'
-  const isSpeaking   = phase === 'speaking'
-  const isThinking   = phase === 'thinking'
-  const isSummary    = phase === 'round-summary'
-  const isReport     = phase === 'report'
+  const isSpeaking  = phase === 'speaking'
+  const isThinking  = phase === 'thinking'
+  const isRoundTurn = phase === 'round-turn'
+  const isReport    = phase === 'report'
 
   return (
     <div className={styles.wrap}>
+
       {/* ── Header ── */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <div className={styles.headerTitle}>Panel in session</div>
+          <div className={styles.headerTitle}>Panel Session</div>
           <div className={styles.headerSub}>{config.ideaDocName}</div>
         </div>
 
         <div className={styles.headerCenter}>
           <div className={styles.roundPips}>
             {Array.from({ length: rounds }, (_, i) => (
-              <div
-                key={i}
-                className={`${styles.pip} ${
-                  i < currentRound ? styles.pipDone
-                  : i === currentRound ? styles.pipActive
-                  : ''
-                }`}
-              />
+              <div key={i} className={`${styles.pip}
+                ${i < currentRound ? styles.pipDone : i === currentRound ? styles.pipActive : ''}`} />
             ))}
           </div>
-          <span className={styles.roundLabel}>
-            Round {currentRound + 1} / {rounds}
-          </span>
+          <span className={styles.roundLabel}>Round {currentRound + 1} / {rounds}</span>
         </div>
 
         <div className={styles.headerRight}>
@@ -359,7 +318,6 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
           >
             {paused ? '▶ Resume' : '⏸ Pause'}
           </button>
-          {/* Network graph lives in the header */}
           <AgentGraph
             panelists={panelists}
             activePanelist={activePanelist?.name ?? null}
@@ -383,21 +341,13 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
       {showHistory && (
         <div className={styles.historyList}>
           {historyMsgs.map((m, i) => (
-            <div
-              key={i}
-              className={`${styles.histItem} ${m.isUser ? styles.histUser : ''}`}
-            >
-              <span
-                className={styles.histAvatar}
-                style={{ background: m.bg, borderColor: m.bd }}
-              >
+            <div key={i} className={`${styles.histItem} ${m.isUser ? styles.histUser : ''}`}>
+              <span className={styles.histAvatar} style={{ background: m.bg, borderColor: m.bd }}>
                 {m.avatar}
               </span>
               <div className={styles.histBody}>
                 <div className={styles.histMeta}>
-                  <span className={styles.histName} style={{ color: m.color }}>
-                    {m.speaker}
-                  </span>
+                  <span className={styles.histName} style={{ color: m.color }}>{m.speaker}</span>
                   <span className={styles.histRound}>R{m.round + 1}</span>
                 </div>
                 <p className={styles.histText}>{m.text}</p>
@@ -407,56 +357,85 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
         </div>
       )}
 
-      {/* ── Stage — main content area ── */}
+      {/* ── Stage ── */}
       <div className={styles.stage}>
-
-        {/* Round summary card */}
-        {isSummary && roundSummary && (
-          <div className={styles.summaryCard}>
-            <div className={styles.summaryTitle}>
-              Round {currentRound + 1} — Questions from the floor
-            </div>
-            <div className={styles.summaryItems}>
-              {roundSummary.map((item, i) => (
-                <div key={i} className={styles.summaryItem}>
-                  <span className={styles.summaryAvatar}>{item.avatar}</span>
-                  <div>
-                    <div className={styles.summaryName} style={{ color: item.color }}>
-                      {item.name}
-                    </div>
-                    <div className={styles.summaryQ}>{item.question}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button
-              className={styles.continueBtn}
-              onClick={() => resolveRoundRef.current?.()}
-            >
-              Continue →
-            </button>
-          </div>
-        )}
 
         {/* Generating report */}
         {isReport && (
           <div className={styles.reportCard}>
             <span className={styles.spinner} />
-            <span>Generating final report…</span>
+            <span>Generating performance report…</span>
           </div>
         )}
 
-        {/* Active speaker card */}
-        {!isSummary && !isReport && activePanelist && (
+        {/* Round turn — summary of questions + user response input */}
+        {isRoundTurn && (
+          <div className={styles.roundTurnCard}>
+            <div className={styles.roundTurnTitle}>
+              Round {currentRound + 1} — Address the panel
+            </div>
+
+            {roundQuestions.length > 0 && (
+              <div className={styles.questionsList}>
+                {roundQuestions.map((q, i) => (
+                  <div key={i} className={styles.questionItem}>
+                    <span className={styles.questionAvatar}>{q.avatar}</span>
+                    <div>
+                      <div className={styles.questionName} style={{ color: q.color }}>{q.name}</div>
+                      <div className={styles.questionText}>"{q.question}"</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className={styles.userTurnSection}>
+              <div className={styles.userTurnLabel}>
+                Your response — answer their questions, raise new points, push back
+              </div>
+              <textarea
+                className={styles.userTextarea}
+                value={userReply}
+                onChange={e => setUserReply(e.target.value)}
+                placeholder="Type your response here, or press Enter + Shift to submit (Enter alone to add lines)…"
+                rows={4}
+                autoFocus
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && (e.metaKey || e.shiftKey)) {
+                    e.preventDefault()
+                    handleUserSubmit()
+                  }
+                }}
+              />
+              <div className={styles.userTurnActions}>
+                <span className={styles.userTurnHint}>⌘↵ or Shift↵ to submit</span>
+                <div className={styles.userTurnBtns}>
+                  <button
+                    className={styles.skipBtn}
+                    onClick={() => { setUserReply(''); handleUserSubmit() }}
+                  >
+                    Skip round →
+                  </button>
+                  <button className={styles.sendBtn} onClick={handleUserSubmit}>
+                    Submit response →
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Active speaker spotlight */}
+        {!isRoundTurn && !isReport && activePanelist && (
           <div
-            className={`${styles.speakerCard} ${isSpeaking ? styles.speakerCardSpeaking : ''}`}
+            className={`${styles.speakerCard} ${isSpeaking ? styles.speakerCardActive : ''}`}
             style={{
-              '--c':  activePanelist.color,
-              '--bg': activePanelist.bg,
-              '--bd': activePanelist.bd,
+              '--pc': activePanelist.color,
+              '--pbg': activePanelist.bg,
+              '--pbd': activePanelist.bd,
             } as React.CSSProperties}
           >
-            {/* Speaker identity */}
+            {/* Header */}
             <div className={styles.speakerHeader}>
               <div className={styles.speakerAvatarWrap}>
                 <div
@@ -475,20 +454,17 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
                 <div className={styles.speakerRole}>{activePanelist.role}</div>
               </div>
 
-              <div className={styles.speakerStatus}>
-                {isThinking && <span className={styles.statusDot}>thinking</span>}
-                {isSpeaking && <span className={`${styles.statusDot} ${styles.statusDotOn}`}>● speaking</span>}
-                {isUserTurn && <span className={styles.statusDot}>done</span>}
+              <div className={styles.speakerBadge}>
+                {isThinking && <span className={styles.badgeThinking}>● thinking</span>}
+                {isSpeaking && <span className={styles.badgeSpeaking}>● speaking</span>}
               </div>
             </div>
 
-            {/* Speech content */}
+            {/* Content */}
             <div className={styles.speakerText}>
               {isThinking ? (
-                <div className={styles.thinkingRow}>
-                  <span className={styles.dot} />
-                  <span className={styles.dot} />
-                  <span className={styles.dot} />
+                <div className={styles.dots}>
+                  <span className={styles.dot} /><span className={styles.dot} /><span className={styles.dot} />
                 </div>
               ) : (
                 <>
@@ -498,7 +474,6 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
               )}
             </div>
 
-            {/* Interrupt button — only during active speech */}
             {isSpeaking && (
               <button className={styles.interruptBtn} onClick={handleInterrupt}>
                 ⚡ Interrupt
@@ -506,32 +481,9 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict }: Pro
             )}
           </div>
         )}
-
-        {/* User response input — appears after speaker finishes */}
-        {isUserTurn && activePanelist && (
-          <div className={styles.userTurnCard}>
-            <div className={styles.userTurnLabel}>
-              Your response to{' '}
-              <span style={{ color: activePanelist.color }}>{activePanelist.name}</span>
-            </div>
-            <div className={styles.userInputRow}>
-              <input
-                className={styles.userInput}
-                value={userReply}
-                onChange={e => setUserReply(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleUserSubmit() }}
-                placeholder="Type a reply, question or press Enter to skip…"
-                autoFocus
-              />
-              <button className={styles.sendBtn} onClick={handleUserSubmit}>
-                {userReply.trim() ? 'Send →' : 'Skip →'}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* ── Subtitle bar — current TTS sentence ── */}
+      {/* ── Subtitle bar ── */}
       {subtitle && isSpeaking && (
         <div className={styles.subtitleBar}>
           <span className={styles.subtitleIcon}>🎙</span>
