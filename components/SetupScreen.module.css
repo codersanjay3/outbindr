@@ -1,18 +1,18 @@
 /* ═══════════════════════════════════════════════════
-   SetupScreen — "The Pitch Room"
-   IBM Plex Mono · dot-grid · stark black/white
+   SetupScreen — white background
+   IBM Plex Mono · stark black on white
 ═══════════════════════════════════════════════════ */
 
 .wrap {
   min-height: 100vh;
-  background: #000;
+  background: #fff;
   position: relative;
 }
 
 /* Subtle dot-grid background texture */
 .grid {
   position: fixed; inset: 0; pointer-events: none; z-index: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1px);
   background-size: 28px 28px;
 }
 
@@ -21,27 +21,28 @@
   position: relative; z-index: 1;
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 24px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid #e8e8e8;
+  background: rgba(255,255,255,0.95);
 }
 .wordmark { display: flex; align-items: baseline; gap: 10px; }
 .wordmarkMain {
-  font-size: 14px; font-weight: 600; letter-spacing: 0.18em; color: #fff;
+  font-size: 14px; font-weight: 600; letter-spacing: 0.18em; color: #000;
 }
 .wordmarkSub {
-  font-size: 10px; letter-spacing: 0.1em; color: #333;
+  font-size: 10px; letter-spacing: 0.1em; color: #aaa;
 }
 .keysBtn {
-  background: transparent; border: 1px solid rgba(255,255,255,0.12); color: #555;
+  background: transparent; border: 1px solid #ddd; color: #888;
   font-size: 10px; letter-spacing: 0.14em; padding: 6px 14px;
   transition: all 0.15s; cursor: pointer; font-family: 'IBM Plex Mono', monospace;
 }
-.keysBtn:hover { border-color: rgba(255,255,255,0.4); color: #ccc; }
+.keysBtn:hover { border-color: #000; color: #000; }
 .backBtn {
-  background: transparent; border: none; color: #555;
+  background: transparent; border: none; color: #888;
   font-family: 'IBM Plex Mono', monospace; font-size: 10px;
   letter-spacing: 0.12em; cursor: pointer; transition: color 0.15s; padding: 0;
 }
-.backBtn:hover { color: #fff; }
+.backBtn:hover { color: #000; }
 
 /* ── Main scroll area ── */
 .inner {
@@ -53,36 +54,36 @@
 
 /* ── Section ── */
 .section {
-  display: flex; gap: 24px; padding: 36px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex; gap: 24px; padding: 32px 0;
+  border-bottom: 1px solid #f0f0f0;
 }
 .section:first-of-type { padding-top: 0; }
 .section:last-of-type { border-bottom: none; }
 
 .sectionNum {
   font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
-  color: rgba(255,255,255,0.15); flex-shrink: 0; padding-top: 3px; width: 28px;
+  color: #ddd; flex-shrink: 0; padding-top: 3px; width: 28px;
 }
 
 .sectionBody { flex: 1; display: flex; flex-direction: column; gap: 14px; }
 
 .sectionTitle {
   font-size: 13px; font-weight: 600; letter-spacing: 0.08em;
-  color: #fff; text-transform: uppercase;
+  color: #000; text-transform: uppercase;
 }
 .sectionHint {
-  font-size: 11px; color: #444; line-height: 1.6; letter-spacing: 0.02em;
+  font-size: 11px; color: #999; line-height: 1.6; letter-spacing: 0.02em;
   margin-top: -6px;
 }
 
 /* ── Status rows ── */
 .statusRow {
   display: flex; align-items: center; gap: 10px;
-  font-size: 11px; color: #444; letter-spacing: 0.04em;
+  font-size: 11px; color: #999; letter-spacing: 0.04em;
 }
 .statusDots { display: flex; gap: 3px; }
 .statusDots span {
-  display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: #444;
+  display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: #ccc;
   animation: dotPulse 1.2s ease-in-out infinite;
 }
 .statusDots span:nth-child(2) { animation-delay: 0.2s; }
@@ -99,17 +100,17 @@
   display: flex; align-items: center; gap: 14px;
   padding: 10px 14px;
   border-left: 2px solid transparent;
-  background: rgba(255,255,255,0.02);
+  background: #fafafa;
   transition: background 0.15s;
   animation: fadeUp 0.3s ease both;
 }
-.panelistRow:hover { background: rgba(255,255,255,0.04); }
+.panelistRow:hover { background: #f5f5f5; }
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: none; }
 }
 .pNum {
-  font-size: 10px; color: rgba(255,255,255,0.15); flex-shrink: 0; letter-spacing: 0.1em;
+  font-size: 10px; color: #ddd; flex-shrink: 0; letter-spacing: 0.1em;
 }
 .pAvatar {
   width: 28px; height: 28px; border-radius: 50%;
@@ -117,60 +118,60 @@
   font-size: 13px; border: 1px solid; flex-shrink: 0;
 }
 .pInfo { flex: 1; min-width: 0; }
-.pName { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; }
-.pRole { font-size: 10px; color: #555; margin-top: 2px; line-height: 1.4; }
+.pName { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; color: #000; }
+.pRole { font-size: 10px; color: #888; margin-top: 2px; line-height: 1.4; }
 
 /* ── Mode toggle ── */
 .modeToggle {
-  display: inline-flex; border: 1px solid rgba(255,255,255,0.1); align-self: flex-start;
+  display: inline-flex; border: 1px solid #e0e0e0; align-self: flex-start;
 }
 .modeBtn {
-  background: transparent; border: none; color: #444;
+  background: transparent; border: none; color: #999;
   font-size: 10px; letter-spacing: 0.14em; padding: 7px 18px;
-  transition: all 0.15s; font-family: var(--font, 'IBM Plex Mono', monospace);
+  transition: all 0.15s; font-family: var(--font, 'IBM Plex Mono', monospace); cursor: pointer;
 }
-.modeBtn + .modeBtn { border-left: 1px solid rgba(255,255,255,0.1); }
-.modeBtnOn { background: rgba(255,255,255,0.06); color: #fff; }
+.modeBtn + .modeBtn { border-left: 1px solid #e0e0e0; }
+.modeBtnOn { background: #000; color: #fff; }
 
 /* ── Rounds counter ── */
 .counter { display: flex; align-items: center; gap: 12px; }
 .countBtn {
   width: 32px; height: 32px; background: transparent;
-  border: 1px solid rgba(255,255,255,0.12); color: #666;
+  border: 1px solid #e0e0e0; color: #999;
   font-size: 18px; display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s; line-height: 1; font-family: var(--font, monospace);
+  transition: all 0.15s; line-height: 1; font-family: var(--font, monospace); cursor: pointer;
 }
-.countBtn:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
-.countNum { font-size: 28px; font-weight: 600; color: #fff; min-width: 40px; text-align: center; }
-.countHint { font-size: 11px; color: #333; letter-spacing: 0.08em; }
+.countBtn:hover { border-color: #000; color: #000; }
+.countNum { font-size: 28px; font-weight: 600; color: #000; min-width: 40px; text-align: center; }
+.countHint { font-size: 11px; color: #bbb; letter-spacing: 0.08em; }
 
 /* ── Key warning ── */
 .keyWarning {
-  font-size: 10px; color: #555; letter-spacing: 0.06em;
-  padding: 10px 14px; border: 1px solid rgba(255,255,255,0.06);
-  text-align: center; background: rgba(255,255,255,0.02);
+  font-size: 10px; color: #999; letter-spacing: 0.06em;
+  padding: 10px 14px; border: 1px solid #e8e8e8;
+  text-align: center; background: #fafafa;
 }
 
 /* ── Launch button ── */
 .launchBtn {
   width: 100%; padding: 18px;
-  background: transparent; color: #fff;
-  border: 1px solid rgba(255,255,255,0.5);
+  background: #000; color: #fff;
+  border: none;
   font-size: 12px; font-weight: 600; letter-spacing: 0.2em;
   font-family: var(--font, 'IBM Plex Mono', monospace);
-  transition: all 0.2s;
+  transition: all 0.2s; cursor: pointer;
 }
 .launchBtn:hover:not(:disabled) {
-  background: #fff; color: #000; border-color: #fff;
+  background: #222; box-shadow: 4px 4px 0 #000;
 }
 .launchBtn:disabled {
-  opacity: 0.18; cursor: not-allowed;
+  background: #e8e8e8; color: #bbb; cursor: not-allowed; box-shadow: none;
 }
 
 /* ── Footer ── */
 .footer {
   margin-top: 16px;
-  font-size: 10px; color: #2a2a2a; text-align: center; letter-spacing: 0.06em;
+  font-size: 10px; color: #ccc; text-align: center; letter-spacing: 0.06em;
 }
 
 @media (max-width: 520px) {

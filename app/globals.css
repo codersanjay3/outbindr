@@ -2,21 +2,17 @@
 
 :root {
   --font: 'IBM Plex Mono', monospace;
-  --bg:          #000;
-  --surface:     #080808;
-  --surface2:    #111;
-  --border:      rgba(255,255,255,0.07);
-  --border2:     rgba(255,255,255,0.12);
-  --text:        #e8e8e8;
+  --bg:          #fff;
+  --surface:     #fafafa;
+  --surface2:    #f5f5f5;
+  --border:      #e8e8e8;
+  --border2:     #d0d0d0;
+  --text:        #000;
   --text-muted:  #666;
-  --text-dim:    #444;
-  --text-faint:  #222;
-  --gold:        #e8e8e8;
-  --gold-light:  #ffffff;
-  --gold-bg:     rgba(255,255,255,0.04);
-  --gold-border: rgba(255,255,255,0.15);
-  --input-bg:    #050505;
-  --accent:      #fff;
+  --text-dim:    #aaa;
+  --text-faint:  #ddd;
+  --input-bg:    #fff;
+  --accent:      #000;
 }
 
 html, body {
@@ -27,12 +23,12 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3 { font-family: var(--font); font-weight: 600; color: #fff; }
+h1, h2, h3 { font-family: var(--font); font-weight: 600; color: #000; }
 
 input, textarea {
   width: 100%;
   background: var(--input-bg);
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid #e0e0e0;
   border-radius: 0;
   color: var(--text);
   font-family: var(--font);
@@ -41,7 +37,7 @@ input, textarea {
   outline: none;
   transition: border-color 0.15s;
 }
-input:focus, textarea:focus { border-color: rgba(255,255,255,0.4); }
+input:focus, textarea:focus { border-color: #000; }
 input::placeholder, textarea::placeholder { color: var(--text-dim); }
 textarea { resize: vertical; line-height: 1.6; }
 
@@ -56,6 +52,6 @@ button { cursor: pointer; font-family: var(--font); }
 
 .cursor {
   display: inline-block; width: 2px; height: 14px;
-  background: #fff; vertical-align: text-bottom;
+  background: #000; vertical-align: text-bottom;
   animation: blink 0.9s step-end infinite;
 }

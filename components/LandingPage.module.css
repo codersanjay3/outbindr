@@ -10,8 +10,8 @@
 .nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 48px; height: 56px;
-  background: rgba(255,255,255,0.92);
+  padding: 0 48px; height: 52px;
+  background: rgba(255,255,255,0.94);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid #e8e8e8;
 }
@@ -28,36 +28,36 @@
   background: #000; color: #fff; border: none;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px; font-weight: 600; letter-spacing: 0.16em;
-  padding: 9px 20px; cursor: pointer; transition: background 0.15s;
+  padding: 8px 18px; cursor: pointer; transition: background 0.15s;
 }
 .navCta:hover { background: #333; }
 
 /* ── Hero ── */
 .hero {
-  padding: 140px 48px 80px;
+  padding: 110px 48px 56px;
   border-bottom: 1px solid #e8e8e8;
 }
-.heroInner { max-width: 780px; margin: 0 auto; }
+.heroInner { max-width: 720px; margin: 0 auto; }
 .heroEyebrow {
   font-size: 9px; font-weight: 600; letter-spacing: 0.24em;
-  color: #999; margin-bottom: 24px;
+  color: #999; margin-bottom: 20px;
 }
 .heroTitle {
-  font-size: clamp(42px, 6vw, 72px);
-  font-weight: 700; line-height: 1.06;
+  font-size: clamp(38px, 5.5vw, 66px);
+  font-weight: 700; line-height: 1.07;
   letter-spacing: -0.02em; color: #000;
-  margin: 0 0 24px;
+  margin: 0 0 20px;
 }
 .heroSub {
-  font-size: 14px; line-height: 1.7; color: #555;
-  max-width: 520px; margin-bottom: 36px; letter-spacing: 0.01em;
+  font-size: 13px; line-height: 1.72; color: #555;
+  max-width: 500px; margin-bottom: 32px; letter-spacing: 0.01em;
 }
-.heroCtas { display: flex; align-items: center; gap: 16px; margin-bottom: 40px; }
+.heroCtas { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
 .ctaPrimary {
   background: #000; color: #fff; border: none;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px; font-weight: 600; letter-spacing: 0.16em;
-  padding: 14px 28px; cursor: pointer;
+  padding: 13px 26px; cursor: pointer;
   transition: background 0.15s, box-shadow 0.15s;
 }
 .ctaPrimary:hover { background: #222; box-shadow: 4px 4px 0 #000; }
@@ -66,298 +66,84 @@
   color: #666; text-decoration: none; transition: color 0.15s;
 }
 .ctaSecondary:hover { color: #000; }
-.heroStats { display: flex; align-items: center; gap: 16px; }
+.heroStats { display: flex; align-items: center; gap: 14px; }
 .stat { font-size: 11px; color: #888; }
 .stat strong { color: #000; font-weight: 600; }
 .statDot { color: #ccc; }
 
-/* ── MacBook sticky demo ── */
-.demoOuter {
-  height: 400vh;
-  position: relative;
-}
-.demoSticky {
-  position: sticky; top: 0;
-  height: 100vh;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 60px 24px 24px;
-  background: #fafafa;
-  border-bottom: 1px solid #e8e8e8;
-  overflow: hidden;
-}
-
-/* Scene labels */
-.demoLabel {
-  display: flex; gap: 24px; margin-bottom: 32px;
-}
-.demoLabelItem {
-  font-size: 9px; font-weight: 600; letter-spacing: 0.2em;
-  color: #bbb; transition: color 0.3s;
-}
-.demoLabelOn { color: #000; }
-
-/* MacBook shell */
-.macbook {
-  display: flex; flex-direction: column; align-items: center;
-  width: min(620px, 88vw);
-  filter: drop-shadow(0 32px 64px rgba(0,0,0,0.18));
-}
-
-/* Lid */
-.macbookLid {
-  width: 100%; aspect-ratio: 16/10;
-  background: linear-gradient(160deg, #d0d0d0 0%, #b8b8b8 100%);
-  border-radius: 10px 10px 0 0;
-  padding: 16px 16px 0;
-  display: flex; flex-direction: column; align-items: center;
-  border: 1.5px solid #aaa;
-  border-bottom: none;
-  position: relative;
-}
-.macbookCamera {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: #888; margin-bottom: 10px; flex-shrink: 0;
-}
-.macbookScreen {
-  flex: 1; width: 100%;
-  background: #fff;
-  overflow: hidden;
-  border-radius: 2px;
-}
-
-/* Base */
-.macbookBase {
-  width: 105%; height: 18px;
-  background: linear-gradient(180deg, #c8c8c8 0%, #b0b0b0 100%);
-  border-radius: 0 0 4px 4px;
-  border: 1.5px solid #aaa;
-  border-top: 1.5px solid #ccc;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 3px;
-  padding: 2px 24px 0;
-}
-.macbookKeyboard {
-  display: grid; grid-template-columns: repeat(12, 1fr);
-  gap: 1.5px; width: 92%;
-}
-.macbookKey {
-  height: 4px; background: #aaa; border-radius: 0.5px;
-}
-.macbookTrackpad {
-  width: 28%; height: 4px;
-  background: #bbb; border-radius: 1px; margin-top: 1px;
-}
-.macbookFoot {
-  width: 102%; height: 3px;
-  background: linear-gradient(180deg, #a8a8a8, #909090);
-  border-radius: 0 0 8px 8px;
-}
-
-/* Scroll hint */
-.scrollHint {
-  position: absolute; bottom: 32px;
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  animation: fadeInUp 0.6s ease both;
-}
-.scrollArrow {
-  width: 1px; height: 32px;
-  background: linear-gradient(180deg, transparent, #000);
-  animation: arrowPulse 1.4s ease infinite;
-}
-.scrollHint span { font-size: 9px; letter-spacing: 0.18em; color: #888; }
-@keyframes arrowPulse {
-  0%,100% { opacity: 0.3; } 50% { opacity: 1; }
-}
-@keyframes fadeInUp {
-  from { opacity:0; transform: translateY(8px); }
-  to   { opacity:1; transform: translateY(0); }
-}
-
-/* ── Scene common styles ── */
-.sceneWrap {
-  display: flex; flex-direction: column;
-  height: 100%; padding: 0;
-  background: #fff; font-family: 'IBM Plex Mono', monospace;
-  overflow: hidden;
-}
-.sceneTopBar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 6px 12px;
-  background: #f5f5f5;
-  border-bottom: 1px solid #e8e8e8;
-  flex-shrink: 0;
-}
-.sceneWordmark { font-size: 8px; font-weight: 700; letter-spacing: 0.18em; color: #000; }
-.sceneKeysBtn {
-  font-size: 7px; letter-spacing: 0.14em; color: #999;
-  border: 1px solid #e0e0e0; padding: 1px 6px;
-}
-.scenePips { display: flex; gap: 3px; }
-.scenePip { width: 5px; height: 5px; border-radius: 50%; border: 1px solid #ccc; }
-.scenePipOn { background: #000; border-color: #000; }
-
-/* Scene inner */
-.sceneInner { flex: 1; display: flex; flex-direction: column; gap: 0; overflow: hidden; }
-.sceneSection {
-  display: flex; gap: 8px; padding: 8px 12px;
-  border-bottom: 1px solid #f0f0f0;
-}
-.sceneNum { font-size: 7px; font-weight: 700; color: #ccc; flex-shrink: 0; padding-top: 1px; }
-.sceneSectionBody { flex: 1; }
-.sceneLabel { font-size: 7px; font-weight: 600; letter-spacing: 0.16em; color: #999; margin-bottom: 4px; }
-
-.sceneDropzone {
-  display: flex; flex-direction: column; align-items: center;
-  gap: 3px; border: 1px dashed #e0e0e0; padding: 10px;
-  font-size: 7px; color: #aaa; letter-spacing: 0.1em;
-}
-.sceneDropArrow {
-  width: 12px; height: 12px; border: 1px solid #ccc;
-  position: relative;
-}
-.sceneDropArrow::after {
-  content: ''; position: absolute; top: 50%; left: 50%;
-  transform: translate(-50%,-30%) rotate(45deg);
-  width: 5px; height: 5px;
-  border-right: 1px solid #aaa; border-bottom: 1px solid #aaa;
-}
-.sceneDropSub { font-size: 6px; color: #ccc; }
-
-.sceneRecordBtn {
-  width: 24px; height: 24px; border-radius: 50%;
-  border: 1.5px solid #000;
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 3px;
-}
-.sceneRecordDot { width: 8px; height: 8px; border-radius: 50%; background: #000; }
-.sceneRecordLabel { font-size: 6px; letter-spacing: 0.14em; color: #888; }
-
-/* ScenePanel */
-.sceneGraph {
-  display: flex; align-items: center; justify-content: center;
-  gap: 0; padding: 8px 12px 4px; position: relative;
-  flex-shrink: 0;
-}
-.sceneGraphNode {
-  width: 24px; height: 24px; border-radius: 50%;
-  border: 1px solid; display: flex; align-items: center;
-  justify-content: center; font-size: 10px; z-index: 1;
-}
-.sceneGraphSvg {
-  position: absolute; left: 12px; right: 12px; top: 8px; bottom: 4px;
-  width: calc(100% - 24px); height: 40px;
-}
-
-.sceneSpeaker { padding: 6px 12px; flex: 1; overflow: hidden; }
-.sceneSpeakerHeader { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
-.sceneSpeakerAvatar {
-  width: 20px; height: 20px; border-radius: 50%;
-  border: 1px solid; display: flex; align-items: center;
-  justify-content: center; font-size: 9px; flex-shrink: 0;
-}
-.sceneSpeakerName { font-size: 7px; font-weight: 700; letter-spacing: 0.1em; }
-.sceneSpeakerRole { font-size: 6px; color: #888; }
-.sceneSpeakingBadge { font-size: 6px; color: #0a0; letter-spacing: 0.08em; margin-left: auto; }
-.sceneSpeakerText { font-size: 7px; line-height: 1.5; color: #333; }
-.sceneCursor {
-  display: inline-block; width: 1px; height: 8px;
-  background: #000; vertical-align: middle;
-  animation: blink 1s step-end infinite;
-}
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-
-.sceneSubtitle {
-  padding: 4px 12px; border-top: 1px solid #f0f0f0;
-  font-size: 6px; color: #888; letter-spacing: 0.06em;
-  flex-shrink: 0;
-}
-
-/* SceneReport */
-.sceneReport { flex: 1; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
-.sceneReportHero { display: flex; align-items: baseline; gap: 6px; }
-.sceneScore { font-size: 32px; font-weight: 700; line-height: 1; color: #000; }
-.sceneScoreOf { font-size: 9px; color: #888; }
-.sceneScoreTier { font-size: 7px; font-weight: 700; letter-spacing: 0.18em; color: #000; }
-.sceneBarList { display: flex; flex-direction: column; gap: 4px; }
-.sceneBarRow { display: flex; align-items: center; gap: 6px; }
-.sceneBarLabel { font-size: 6px; width: 72px; color: #666; flex-shrink: 0; }
-.sceneBarBg { flex: 1; height: 3px; background: #f0f0f0; }
-.sceneBarFill { height: 100%; background: #000; }
-
 /* ── Features ── */
-.features { padding: 100px 48px; background: #fff; border-bottom: 1px solid #e8e8e8; }
+.features { padding: 80px 48px; background: #fff; border-bottom: 1px solid #e8e8e8; }
 .featuresInner { max-width: 960px; margin: 0 auto; }
 .sectionEye {
   font-size: 9px; font-weight: 600; letter-spacing: 0.24em;
-  color: #999; margin-bottom: 16px;
+  color: #999; margin-bottom: 14px;
 }
 .sectionTitle {
-  font-size: clamp(22px, 3vw, 34px); font-weight: 700;
-  letter-spacing: -0.01em; margin: 0 0 56px; color: #000;
+  font-size: clamp(20px, 2.8vw, 30px); font-weight: 700;
+  letter-spacing: -0.01em; margin: 0 0 48px; color: #000;
 }
 .featureGrid {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
   background: #e8e8e8;
 }
 .featureCard {
-  background: #fff; padding: 28px 24px;
-  opacity: 0; transform: translateY(16px);
+  background: #fff; padding: 26px 22px;
+  opacity: 0; transform: translateY(14px);
   transition: opacity 0.5s ease, transform 0.5s ease;
 }
 .featureCardVisible { opacity: 1; transform: translateY(0); }
 .featureNum {
   font-size: 9px; font-weight: 700; letter-spacing: 0.2em;
-  color: #ccc; margin-bottom: 12px;
+  color: #ccc; margin-bottom: 10px;
 }
 .featureTitle {
-  font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
-  color: #000; margin-bottom: 8px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+  color: #000; margin-bottom: 7px;
 }
 .featureBody { font-size: 11px; line-height: 1.65; color: #666; }
 
 /* ── How it works ── */
-.how { padding: 100px 48px; background: #fafafa; border-bottom: 1px solid #e8e8e8; }
+.how { padding: 80px 48px; background: #fafafa; border-bottom: 1px solid #e8e8e8; }
 .howInner { max-width: 960px; margin: 0 auto; }
 .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
-.step { padding: 0 24px; position: relative; }
+.step { padding: 0 22px; position: relative; }
 .step:first-child { padding-left: 0; }
 .step:last-child { padding-right: 0; }
 .stepNum {
   font-size: 9px; font-weight: 700; letter-spacing: 0.2em;
-  color: #000; margin-bottom: 12px; display: flex; align-items: center; gap: 12px;
+  color: #000; margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
 }
 .stepLine {
   position: absolute; top: 6px; right: 0;
   width: 50%; height: 1px; background: #e0e0e0;
   transform: translateX(100%);
 }
-.stepTitle { font-size: 14px; font-weight: 700; color: #000; margin-bottom: 8px; letter-spacing: 0.02em; }
+.stepTitle { font-size: 13px; font-weight: 700; color: #000; margin-bottom: 7px; letter-spacing: 0.02em; }
 .stepBody { font-size: 11px; line-height: 1.65; color: #666; }
 
 /* ── Final CTA ── */
 .finalCta {
-  padding: 100px 48px;
+  padding: 80px 48px;
   background: #000; color: #fff;
   text-align: center;
 }
-.finalCtaInner { max-width: 600px; margin: 0 auto; }
+.finalCtaInner { max-width: 560px; margin: 0 auto; }
 .finalEye {
   font-size: 9px; font-weight: 600; letter-spacing: 0.28em;
-  color: #666; margin-bottom: 20px;
+  color: #555; margin-bottom: 18px;
 }
 .finalTitle {
-  font-size: clamp(26px, 4vw, 44px); font-weight: 700;
-  line-height: 1.15; letter-spacing: -0.01em;
-  margin: 0 0 40px; color: #fff;
+  font-size: clamp(24px, 3.5vw, 40px); font-weight: 700;
+  line-height: 1.18; letter-spacing: -0.01em;
+  margin: 0 0 36px; color: #fff;
 }
 .finalBtn {
   background: #fff; color: #000; border: none;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px; font-weight: 700; letter-spacing: 0.18em;
-  padding: 16px 36px; cursor: pointer;
+  padding: 14px 32px; cursor: pointer;
   transition: background 0.15s, box-shadow 0.15s;
-  margin-bottom: 20px;
+  margin-bottom: 18px; display: inline-block;
 }
 .finalBtn:hover { background: #f0f0f0; box-shadow: 4px 4px 0 #555; }
 .finalNote { font-size: 10px; color: #555; letter-spacing: 0.08em; margin: 0; }
@@ -365,7 +151,7 @@
 /* ── Footer ── */
 .footer {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 48px;
+  padding: 18px 48px;
   border-top: 1px solid #e8e8e8; background: #fff;
 }
 .footerLogo { font-size: 11px; font-weight: 700; letter-spacing: 0.2em; color: #000; }
@@ -374,11 +160,11 @@
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .nav { padding: 0 20px; }
-  .hero { padding: 100px 20px 60px; }
-  .features, .how, .finalCta { padding: 64px 20px; }
-  .footer { padding: 20px; }
+  .hero { padding: 88px 20px 48px; }
+  .features, .how, .finalCta { padding: 56px 20px; }
+  .footer { padding: 18px 20px; }
   .featureGrid { grid-template-columns: 1fr; }
-  .steps { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .steps { grid-template-columns: 1fr 1fr; gap: 28px; }
   .stepLine { display: none; }
 }
 @media (max-width: 480px) {
