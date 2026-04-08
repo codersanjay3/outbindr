@@ -1,0 +1,70 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold: #c8962a;
+  --gold-light: #e0a830;
+  --bg: #0d0d0f;
+  --surface: #111010;
+  --surface2: #161514;
+  --border: #1e1c1a;
+  --border2: #2a2826;
+  --text: #e8e2d6;
+  --text-muted: #8b7355;
+  --text-dim: #5a5550;
+  --text-faint: #3a3630;
+  --gold-bg: #1a1007;
+  --gold-border: #3d2e10;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+}
+
+h1, h2, h3 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #f5eed8;
+}
+
+.mono { font-family: 'DM Mono', monospace; }
+
+input, textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+input:focus, textarea:focus { border-color: var(--gold-border); }
+input::placeholder, textarea::placeholder { color: var(--text-faint); }
+textarea { resize: vertical; line-height: 1.6; }
+
+button { cursor: pointer; font-family: 'DM Mono', monospace; }
+
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes dot {
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.3; }
+  40%            { transform: scale(1);   opacity: 1;   }
+}
+@keyframes barGrow { from { width: 0; } }
+
+.cursor {
+  display: inline-block;
+  width: 7px; height: 13px;
+  background: var(--gold);
+  vertical-align: text-bottom;
+  animation: blink 0.8s step-end infinite;
+}

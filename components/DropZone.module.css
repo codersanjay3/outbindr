@@ -1,0 +1,17 @@
+.zone {
+  border: 1px dashed var(--gold-border);
+  border-radius: 8px;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg);
+  user-select: none;
+}
+.zone:hover, .drag { border-color: var(--gold); background: var(--gold-bg); }
+.filled { border-style: solid; border-color: #3d5520; background: #0a1005; }
+
+.title { font-size: 14px; color: var(--text-muted); margin-bottom: 6px; }
+.sub   { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text-faint); }
+.fileIcon { font-size: 24px; margin-bottom: 8px; }
+.fileName { font-size: 13px; font-family: 'DM Mono', monospace; color: var(--gold); margin-bottom: 4px; }
