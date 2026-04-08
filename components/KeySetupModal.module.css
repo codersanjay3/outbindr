@@ -1,19 +1,20 @@
 /* ═══════════════════════════════════════════
-   KeySetupModal — same stark B&W aesthetic
+   KeySetupModal — white theme
 ═══════════════════════════════════════════ */
 
 .overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
   display: flex; align-items: center; justify-content: center;
   z-index: 100; animation: fadeIn 0.15s ease both;
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .modal {
-  background: #050505; border: 1px solid rgba(255,255,255,0.1);
+  background: #fff; border: 1px solid #e0e0e0;
   padding: 28px; width: min(460px, 92vw);
-  display: flex; flex-direction: column; gap: 22px;
+  display: flex; flex-direction: column; gap: 20px;
   animation: slideUp 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.10);
 }
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(12px); }
@@ -23,30 +24,59 @@
 .header { display: flex; align-items: center; justify-content: space-between; }
 .title {
   font-size: 12px; font-weight: 600; letter-spacing: 0.16em;
-  text-transform: uppercase; color: #fff;
+  text-transform: uppercase; color: #000;
 }
 .closeBtn {
-  background: transparent; border: none; color: #444; font-size: 14px;
-  line-height: 1; padding: 4px; font-family: inherit; transition: color 0.15s;
+  background: transparent; border: none; color: #bbb; font-size: 14px;
+  line-height: 1; padding: 4px; font-family: inherit; cursor: pointer; transition: color 0.15s;
 }
-.closeBtn:hover { color: #fff; }
+.closeBtn:hover { color: #000; }
 
 .hint {
-  font-size: 10px; color: #3a3a3a; line-height: 1.7; letter-spacing: 0.03em;
+  font-size: 10px; color: #aaa; line-height: 1.7; letter-spacing: 0.03em;
 }
 
 .field { display: flex; flex-direction: column; gap: 7px; }
+.field input {
+  background: #fff; border: 1px solid #e0e0e0; color: #000;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  padding: 10px 12px; outline: none; transition: border-color 0.15s; width: 100%; box-sizing: border-box;
+}
+.field input:focus { border-color: #000; }
+.field input::placeholder { color: #ccc; }
+.field input:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .label {
   font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #666;
 }
-.optional { color: #2a2a2a; text-transform: none; letter-spacing: 0; font-size: 9px; }
-.note     { color: #555;    text-transform: none; letter-spacing: 0; font-size: 9px; }
-.subhint  { font-size: 9px; color: #2a2a2a; letter-spacing: 0.04em; }
+.optional { color: #bbb; text-transform: none; letter-spacing: 0; font-size: 9px; }
+.note     { color: #888; text-transform: none; letter-spacing: 0; font-size: 9px; }
+.subhint  { font-size: 9px; color: #bbb; letter-spacing: 0.04em; }
+
+.accountToggle {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 10px; color: #666; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.03em;
+}
+.accountToggle input[type="checkbox"] {
+  width: 13px; height: 13px; accent-color: #000; cursor: pointer; flex-shrink: 0;
+}
+
+.syncingRow {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 11px; color: #aaa; font-family: 'IBM Plex Mono', monospace;
+  padding: 12px 0;
+}
+.syncSpinner {
+  width: 14px; height: 14px; border: 1.5px solid #e0e0e0; border-top-color: #000;
+  border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .saveBtn {
-  background: #fff; color: #000; border: none;
+  background: #000; color: #fff; border: none;
   padding: 13px; font-size: 11px; font-weight: 600;
-  letter-spacing: 0.16em; font-family: inherit; transition: background 0.15s;
+  letter-spacing: 0.16em; font-family: inherit; cursor: pointer; transition: background 0.15s;
 }
-.saveBtn:hover:not(:disabled) { background: #e0e0e0; }
-.saveBtn:disabled { background: #111; color: #333; cursor: not-allowed; }
+.saveBtn:hover:not(:disabled) { background: #333; }
+.saveBtn:disabled { background: #e0e0e0; color: #bbb; cursor: not-allowed; }

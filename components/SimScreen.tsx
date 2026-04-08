@@ -4,6 +4,7 @@ import type { SimConfig, Message, Verdict, Panelist } from '@/lib/types'
 import { loadKeys, apiHeaders } from '@/lib/keys'
 import { speakSentence, extractCompleteSentences, cancelCurrentTTS } from '@/lib/tts'
 import AgentGraph, { type GraphEdge } from './AgentGraph'
+import AudioPitchRecorder from './AudioPitchRecorder'
 import styles from './SimScreen.module.css'
 
 interface Props {
@@ -20,6 +21,7 @@ type Phase =
   | 'thinking'      // deliberating + awaiting stream
   | 'speaking'      // streaming text + TTS
   | 'round-turn'    // all panelists done — show summary + user input
+  | 'rapid-fire'    // collaborative follow-up questions
   | 'report'        // generating final verdict
 
 interface HistoryMsg {
@@ -29,6 +31,10 @@ interface HistoryMsg {
 
 interface RoundQuestion {
   name: string; avatar: string; color: string; question: string
+}
+
+interface RapidFireQ {
+  panelist: string; avatar: string; color: string; question: string
 }
 
 export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onProgress, initialHistory, initialRound }: Props) {
@@ -46,22 +52,45 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
   const [currentRound, setCurrentRound]     = useState(initialRound ?? 0)
   const [roundQuestions, setRoundQuestions] = useState<RoundQuestion[]>([])
   const [paused, setPaused]                 = useState(false)
+  const [responseMode, setResponseMode]     = useState<'type' | 'voice'>('type')
+
+  // Rapid-fire state
+  const [rapidFireQs, setRapidFireQs]         = useState<RapidFireQ[]>([])
+  const [rfIndex, setRfIndex]                 = useState(0)
+  const [rfAnswer, setRfAnswer]               = useState('')
+  const [rfAnswerMode, setRfAnswerMode]       = useState<'type' | 'voice'>('type')
+  const [rfLoading, setRfLoading]             = useState(false)
 
   // ── Stable refs ────────────────────────────────────────────────────────────
-  const historyRef         = useRef<Message[]>(initialHistory ?? [])
-  const ideaRef            = useRef('')
-  const ideaB64Ref         = useRef('')
-  const ideaMimeRef        = useRef('')
-  const pausedRef          = useRef(false)
-  const interruptRef       = useRef(false)
-  const abortRef           = useRef<AbortController | null>(null)
-  const resolveUserTurnRef = useRef<((reply: string) => void) | null>(null)
-  const userReplyRef       = useRef('')
+  const historyRef          = useRef<Message[]>(initialHistory ?? [])
+  const ideaRef             = useRef('')
+  const ideaB64Ref          = useRef('')
+  const ideaMimeRef         = useRef('')
+  const pausedRef           = useRef(false)
+  const interruptRef        = useRef(false)
+  const abortRef            = useRef<AbortController | null>(null)
+  const resolveUserTurnRef  = useRef<((reply: string) => void) | null>(null)
+  const resolveRapidFireRef = useRef<(() => void) | null>(null)
+  const userReplyRef        = useRef('')
+  const rfAnswerRef         = useRef('')
+  const currentRoundRef     = useRef(initialRound ?? 0)
 
   useEffect(() => { pausedRef.current = paused }, [paused])
   useEffect(() => { userReplyRef.current = userReply }, [userReply])
+  useEffect(() => { rfAnswerRef.current = rfAnswer }, [rfAnswer])
+  useEffect(() => { currentRoundRef.current = currentRound }, [currentRound])
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { init() }, [])
+
+  // ── Auto-save every 10 seconds during sim ─────────────────────────────────
+  useEffect(() => {
+    if (!onProgress) return
+    const id = setInterval(() => {
+      onProgress(historyRef.current, currentRoundRef.current)
+    }, 10_000)
+    return () => clearInterval(id)
+  }, [onProgress])
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -74,16 +103,44 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
   const waitForUserTurn = (): Promise<string> =>
     new Promise(resolve => { resolveUserTurnRef.current = resolve })
 
+  const waitForRapidFireDone = (): Promise<void> =>
+    new Promise(resolve => { resolveRapidFireRef.current = resolve })
+
   const handleUserSubmit = useCallback(() => {
     const reply = userReplyRef.current.trim()
     resolveUserTurnRef.current?.(reply)
     resolveUserTurnRef.current = null
     setUserReply('')
-    // Save progress after user submits their reply
     if (onProgress) {
-      onProgress(historyRef.current, currentRound)
+      onProgress(historyRef.current, currentRoundRef.current)
     }
-  }, [currentRound, onProgress])
+  }, [onProgress])
+
+  const handleRfSubmit = useCallback(() => {
+    const answer = rfAnswerRef.current.trim()
+    setRfAnswer('')
+
+    setRapidFireQs(prev => {
+      const next = rfIndex + 1
+      // Record answer in history
+      if (answer) {
+        historyRef.current.push({
+          role: 'user',
+          content: `[Rapid-fire answer] ${answer}`,
+          speaker: 'You',
+          round: currentRoundRef.current,
+        })
+      }
+      if (next >= prev.length) {
+        // All rapid-fire done
+        resolveRapidFireRef.current?.()
+        resolveRapidFireRef.current = null
+      } else {
+        setRfIndex(next)
+      }
+      return prev
+    })
+  }, [rfIndex])
 
   const handleInterrupt = useCallback(() => {
     interruptRef.current = true
@@ -139,6 +196,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
 
     for (let r = 0; r < rounds; r++) {
       setCurrentRound(r)
+      currentRoundRef.current = r
       const roundQs: RoundQuestion[] = []
 
       for (let pi = 0; pi < panelists.length; pi++) {
@@ -151,7 +209,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
         setPhase('thinking')
         interruptRef.current = false
 
-        // ── STEP 1: Internal deliberation (hidden — more tokens allowed) ────
+        // ── STEP 1: Internal deliberation ────────────────────────────────────
         if (!isFirst) {
           try {
             const dr = await fetch('/api/deliberate', {
@@ -168,7 +226,6 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
             })
             const { deliberation } = await dr.json()
             if (deliberation) {
-              // Add to context so other panelists can see it — NEVER displayed to user
               historyRef.current.push({
                 role: 'assistant',
                 content: `[Internal deliberation by ${p.name}]: ${deliberation}`,
@@ -176,10 +233,10 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
                 round: r,
               })
             }
-          } catch { /* silently skip — not critical */ }
+          } catch { /* silently skip */ }
         }
 
-        // ── STEP 2: Public response — short, streamed, spoken ────────────
+        // ── STEP 2: Public response — streamed + spoken ──────────────────────
         abortRef.current = new AbortController()
         let res: Response
 
@@ -253,26 +310,55 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
           roundQs.push({ name: p.name, avatar: p.avatar, color: p.color, question: extractQuestion(fullText) })
         }
 
-        // Brief pause between panelists
-        await new Promise(r => setTimeout(r, 400))
+        await new Promise(res => setTimeout(res, 400))
       }
 
-      // ── END OF ROUND: combined summary + user turn ───────────────────────
+      // ── END OF ROUND: user turn ──────────────────────────────────────────
       setActivePanelist(null)
       setStreamingText('')
       setRoundQuestions(roundQs)
+      setResponseMode('type')
       setPhase('round-turn')
 
       const reply = await waitForUserTurn()
       if (reply) {
         historyRef.current.push({ role: 'user', content: reply, speaker: 'You', round: r })
         setHistoryMsgs(prev => [...prev, {
-          speaker: 'You', avatar: '💬', color: '#ffffff',
-          bg: 'rgba(255,255,255,0.04)', bd: 'rgba(255,255,255,0.1)',
+          speaker: 'You', avatar: '💬', color: '#888',
+          bg: '#f5f5f5', bd: '#e0e0e0',
           text: reply, round: r, isUser: true,
         }])
       }
       setRoundQuestions([])
+
+      // ── RAPID-FIRE follow-up questions ───────────────────────────────────
+      try {
+        setRfLoading(true)
+        setRfIndex(0)
+        setRfAnswer('')
+        setRfAnswerMode('type')
+
+        const rfRes = await fetch('/api/rapid-fire', {
+          method: 'POST',
+          headers: apiHeaders(keys),
+          body: JSON.stringify({
+            panelists,
+            history: historyRef.current.slice(-16),
+            round: r,
+            totalRounds: rounds,
+          }),
+        })
+        const { questions } = await rfRes.json()
+        setRfLoading(false)
+
+        if (questions?.length > 0) {
+          setRapidFireQs(questions)
+          setPhase('rapid-fire')
+          await waitForRapidFireDone()
+        }
+      } catch {
+        setRfLoading(false)
+      }
     }
 
     // ── Generate final evaluation report ──────────────────────────────────
@@ -292,10 +378,13 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  const isSpeaking  = phase === 'speaking'
-  const isThinking  = phase === 'thinking'
-  const isRoundTurn = phase === 'round-turn'
-  const isReport    = phase === 'report'
+  const isSpeaking   = phase === 'speaking'
+  const isThinking   = phase === 'thinking'
+  const isRoundTurn  = phase === 'round-turn'
+  const isRapidFire  = phase === 'rapid-fire'
+  const isReport     = phase === 'report'
+
+  const currentRfQ = rapidFireQs[rfIndex]
 
   return (
     <div className={styles.wrap}>
@@ -375,6 +464,14 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
           </div>
         )}
 
+        {/* Rapid-fire loading */}
+        {rfLoading && (
+          <div className={styles.reportCard}>
+            <span className={styles.spinner} />
+            <span>Panel is formulating follow-up questions…</span>
+          </div>
+        )}
+
         {/* Round turn — summary of questions + user response input */}
         {isRoundTurn && (
           <div className={styles.roundTurnCard}>
@@ -400,40 +497,159 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
               <div className={styles.userTurnLabel}>
                 Your response — answer their questions, raise new points, push back
               </div>
-              <textarea
-                className={styles.userTextarea}
-                value={userReply}
-                onChange={e => setUserReply(e.target.value)}
-                placeholder="Type your response here, or press Enter + Shift to submit (Enter alone to add lines)…"
-                rows={4}
-                autoFocus
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && (e.metaKey || e.shiftKey)) {
-                    e.preventDefault()
-                    handleUserSubmit()
-                  }
-                }}
-              />
-              <div className={styles.userTurnActions}>
-                <span className={styles.userTurnHint}>⌘↵ or Shift↵ to submit</span>
-                <div className={styles.userTurnBtns}>
-                  <button
-                    className={styles.skipBtn}
-                    onClick={() => { setUserReply(''); handleUserSubmit() }}
-                  >
-                    Skip round →
-                  </button>
-                  <button className={styles.sendBtn} onClick={handleUserSubmit}>
-                    Submit response →
-                  </button>
-                </div>
+
+              {/* Voice / Type toggle */}
+              <div className={styles.responseModeToggle}>
+                <button
+                  className={`${styles.responseModeBtn} ${responseMode === 'type' ? styles.responseModeBtnOn : ''}`}
+                  onClick={() => setResponseMode('type')}
+                >TYPE</button>
+                <button
+                  className={`${styles.responseModeBtn} ${responseMode === 'voice' ? styles.responseModeBtnOn : ''}`}
+                  onClick={() => setResponseMode('voice')}
+                >VOICE</button>
               </div>
+
+              {responseMode === 'type' ? (
+                <>
+                  <textarea
+                    className={styles.userTextarea}
+                    value={userReply}
+                    onChange={e => setUserReply(e.target.value)}
+                    placeholder="Type your response here…"
+                    rows={4}
+                    autoFocus
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && (e.metaKey || e.shiftKey)) {
+                        e.preventDefault()
+                        handleUserSubmit()
+                      }
+                    }}
+                  />
+                  <div className={styles.userTurnActions}>
+                    <span className={styles.userTurnHint}>⌘↵ or Shift↵ to submit</span>
+                    <div className={styles.userTurnBtns}>
+                      <button
+                        className={styles.skipBtn}
+                        onClick={() => { setUserReply(''); handleUserSubmit() }}
+                      >
+                        Skip round →
+                      </button>
+                      <button className={styles.sendBtn} onClick={handleUserSubmit}>
+                        Submit →
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className={styles.voiceResponseWrap}>
+                  <AudioPitchRecorder
+                    groqKey={loadKeys().groq}
+                    onTranscript={t => { setUserReply(t); }}
+                  />
+                  {userReply && (
+                    <div className={styles.userTurnActions} style={{ marginTop: 12 }}>
+                      <span className={styles.userTurnHint}>{userReply.split(/\s+/).length} words recorded</span>
+                      <div className={styles.userTurnBtns}>
+                        <button className={styles.skipBtn} onClick={() => { setUserReply(''); handleUserSubmit() }}>
+                          Skip →
+                        </button>
+                        <button className={styles.sendBtn} onClick={handleUserSubmit}>
+                          Submit →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
 
+        {/* Rapid-fire questions */}
+        {isRapidFire && currentRfQ && (
+          <div className={styles.rfCard}>
+            <div className={styles.rfHeader}>
+              <span className={styles.rfLabel}>RAPID-FIRE</span>
+              <span className={styles.rfProgress}>{rfIndex + 1} / {rapidFireQs.length}</span>
+            </div>
+
+            <div className={styles.rfQuestionRow}>
+              <span className={styles.rfAvatar}>{currentRfQ.avatar}</span>
+              <div>
+                <div className={styles.rfName} style={{ color: currentRfQ.color }}>{currentRfQ.panelist}</div>
+                <div className={styles.rfQuestion}>{currentRfQ.question}</div>
+              </div>
+            </div>
+
+            <div className={styles.rfDots}>
+              {rapidFireQs.map((_, i) => (
+                <span key={i} className={`${styles.rfDot} ${i === rfIndex ? styles.rfDotActive : i < rfIndex ? styles.rfDotDone : ''}`} />
+              ))}
+            </div>
+
+            {/* Answer mode toggle */}
+            <div className={styles.responseModeToggle} style={{ marginBottom: 10 }}>
+              <button
+                className={`${styles.responseModeBtn} ${rfAnswerMode === 'type' ? styles.responseModeBtnOn : ''}`}
+                onClick={() => setRfAnswerMode('type')}
+              >TYPE</button>
+              <button
+                className={`${styles.responseModeBtn} ${rfAnswerMode === 'voice' ? styles.responseModeBtnOn : ''}`}
+                onClick={() => setRfAnswerMode('voice')}
+              >VOICE</button>
+            </div>
+
+            {rfAnswerMode === 'type' ? (
+              <>
+                <textarea
+                  className={styles.userTextarea}
+                  value={rfAnswer}
+                  onChange={e => setRfAnswer(e.target.value)}
+                  placeholder="Your answer…"
+                  rows={2}
+                  autoFocus
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && (e.metaKey || e.shiftKey)) {
+                      e.preventDefault()
+                      handleRfSubmit()
+                    }
+                  }}
+                />
+                <div className={styles.userTurnActions} style={{ marginTop: 8 }}>
+                  <span className={styles.userTurnHint}>⌘↵ to answer</span>
+                  <div className={styles.userTurnBtns}>
+                    <button className={styles.skipBtn} onClick={handleRfSubmit}>Skip →</button>
+                    <button className={styles.sendBtn} onClick={handleRfSubmit}>
+                      {rfIndex + 1 < rapidFireQs.length ? 'Next →' : 'Done ✓'}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className={styles.voiceResponseWrap}>
+                <AudioPitchRecorder
+                  groqKey={loadKeys().groq}
+                  onTranscript={t => setRfAnswer(t)}
+                />
+                {rfAnswer && (
+                  <div className={styles.userTurnActions} style={{ marginTop: 12 }}>
+                    <span className={styles.userTurnHint}>{rfAnswer.split(/\s+/).length} words</span>
+                    <div className={styles.userTurnBtns}>
+                      <button className={styles.skipBtn} onClick={() => { setRfAnswer(''); handleRfSubmit() }}>Skip →</button>
+                      <button className={styles.sendBtn} onClick={handleRfSubmit}>
+                        {rfIndex + 1 < rapidFireQs.length ? 'Next →' : 'Done ✓'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Active speaker spotlight */}
-        {!isRoundTurn && !isReport && activePanelist && (
+        {!isRoundTurn && !isRapidFire && !isReport && !rfLoading && activePanelist && (
           <div
             className={`${styles.speakerCard} ${isSpeaking ? styles.speakerCardActive : ''}`}
             style={{

@@ -1,19 +1,21 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import DropZone from './DropZone'
 import AudioPitchRecorder from './AudioPitchRecorder'
 import KeySetupModal from './KeySetupModal'
 import type { SimConfig, Panelist } from '@/lib/types'
 import type { StoredKeys } from '@/lib/keys'
+import type { SetupState } from '@/lib/supabase-sessions'
 import { loadKeys, hasTextKey } from '@/lib/keys'
 import styles from './SetupScreen.module.css'
 
 interface Props {
   onLaunch: (config: SimConfig, idea: File | null, ideaText?: string) => void
   onBack?: () => void
+  onAutoSave?: (state: SetupState) => void
 }
 
-export default function SetupScreen({ onLaunch, onBack }: Props) {
+export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
   const [panelFile, setPanelFile]   = useState<File | null>(null)
   const [ideaText, setIdeaText]     = useState('')
   const [pitchMode, setPitchMode]   = useState<'mic' | 'type'>('mic')
@@ -25,7 +27,7 @@ export default function SetupScreen({ onLaunch, onBack }: Props) {
 
   // ── Hydration-safe key loading ──────────────────────────────────────────
   const [mounted, setMounted] = useState(false)
-  const [keys, setKeys]       = useState<StoredKeys>({ anthropic: '', groq: '', elevenlabs: '' })
+  const [keys, setKeys]       = useState<StoredKeys>({ groq: '', elevenlabs: '' })
 
   useEffect(() => {
     const k = loadKeys()
@@ -33,6 +35,27 @@ export default function SetupScreen({ onLaunch, onBack }: Props) {
     setMounted(true)
     if (!hasTextKey(k)) setShowKeys(true)
   }, [])
+
+  // ── Auto-save every 10 seconds ─────────────────────────────────────────
+  const autoSaveRef = useRef({ panelists, ideaText, rounds, pitchMode })
+  useEffect(() => {
+    autoSaveRef.current = { panelists, ideaText, rounds, pitchMode }
+  }, [panelists, ideaText, rounds, pitchMode])
+
+  useEffect(() => {
+    if (!onAutoSave) return
+    const id = setInterval(() => {
+      const { panelists: p, ideaText: it, rounds: r, pitchMode: pm } = autoSaveRef.current
+      onAutoSave({
+        panelists: p,
+        ideaText:  it,
+        rounds:    r,
+        title:     p.length > 0 ? `Draft — ${p.map(x => x.name).join(', ')}` : 'Draft',
+        pitchMode: pm,
+      })
+    }, 10_000)
+    return () => clearInterval(id)
+  }, [onAutoSave])
 
   const refreshKeys = () => {
     const k = loadKeys()
@@ -47,8 +70,7 @@ export default function SetupScreen({ onLaunch, onBack }: Props) {
     try {
       const cur = loadKeys()
       const h: Record<string, string> = {}
-      if (cur.anthropic) h['x-anthropic-key'] = cur.anthropic
-      if (cur.groq)      h['x-groq-key']      = cur.groq
+      if (cur.groq) h['x-groq-key'] = cur.groq
       const fd = new FormData()
       fd.append('panel', file)
       const res  = await fetch('/api/parse-panel', { method: 'POST', headers: h, body: fd })
@@ -219,7 +241,7 @@ export default function SetupScreen({ onLaunch, onBack }: Props) {
         {/* ── Status & launch ── */}
         {mounted && !hasTextKey(keys) && (
           <div className={styles.keyWarning}>
-            NO API KEY — click KEYS to add an Anthropic or Groq key before launching
+            NO API KEY — click KEYS to add a Groq key before launching
           </div>
         )}
 

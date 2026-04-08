@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { syncKeysFromAccount } from '@/lib/keys'
 import LandingPage from '@/components/LandingPage'
 import Dashboard from '@/components/Dashboard'
 import PitchWars from '@/components/PitchWars'
@@ -14,13 +15,17 @@ export default function Home() {
   // On mount, check if user is already signed in
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setView('dashboard')
+      if (data.session) {
+        setView('dashboard')
+        syncKeysFromAccount().catch(() => {})
+      }
       setChecking(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setView('dashboard')
+        syncKeysFromAccount().catch(() => {})
       } else {
         setView('landing')
       }
@@ -34,7 +39,6 @@ export default function Home() {
     return (
       <LandingPage
         onEnterApp={() => {
-          // onEnterApp is called after successful auth
           setView('dashboard')
         }}
       />

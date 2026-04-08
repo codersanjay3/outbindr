@@ -21,34 +21,13 @@ Minimum 2, maximum 6 panelists.`
 
     if (file.type === 'application/pdf') {
       const arrayBuffer = await file.arrayBuffer()
-      const base64 = Buffer.from(arrayBuffer).toString('base64')
-
-      const anthropicKey = req.headers.get('x-anthropic-key')
-      if (anthropicKey) {
-        const Anthropic = (await import('@anthropic-ai/sdk')).default
-        const ac = new Anthropic({ apiKey: anthropicKey })
-        const response = await ac.messages.create({
-          model: 'claude-sonnet-4-5-20251022',
-          max_tokens: 1000,
-          system: SYSTEM,
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'document', source: { type: 'base64', media_type: 'application/pdf' as const, data: base64 } },
-              { type: 'text', text: 'Parse this document into a panel configuration JSON array.' }
-            ]
-          }]
-        })
-        textContent = response.content[0].type === 'text' ? response.content[0].text : '[]'
-      } else {
-        const pdfParse = (await import('pdf-parse')).default
-        const pdfData = await pdfParse(Buffer.from(arrayBuffer))
-        textContent = await client.createMessage(
-          SYSTEM,
-          [{ role: 'user', content: `Parse this panel document:\n\n${pdfData.text}` }],
-          1000
-        )
-      }
+      const pdfParse = (await import('pdf-parse')).default
+      const pdfData = await pdfParse(Buffer.from(arrayBuffer))
+      textContent = await client.createMessage(
+        SYSTEM,
+        [{ role: 'user', content: `Parse this panel document:\n\n${pdfData.text}` }],
+        1000
+      )
     } else {
       const rawText = await file.text()
       textContent = await client.createMessage(

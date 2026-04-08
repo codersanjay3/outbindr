@@ -1,4 +1,4 @@
--- PitchWars sessions table
+-- Outbindr sessions table
 -- Run this in your Supabase SQL Editor: https://supabase.com/dashboard/project/hghvdfvijqevsofqsiro/sql
 
 create table if not exists public.sessions (
@@ -9,11 +9,12 @@ create table if not exists public.sessions (
   status         text default 'in_progress' not null
                    check (status in ('in_progress','completed')),
   title          text,
-  config         jsonb not null,
+  config         jsonb default '{}'::jsonb not null,
   history        jsonb default '[]'::jsonb not null,
   verdict        jsonb,
   idea_text      text default '',
-  current_round  int default 0
+  current_round  int default 0,
+  setup_state    jsonb default null
 );
 
 -- Row Level Security
@@ -30,3 +31,7 @@ create policy "users_update_own" on public.sessions
 
 create policy "users_delete_own" on public.sessions
   for delete using (auth.uid() = user_id);
+
+-- Migration: run these if you have an existing sessions table
+-- alter table public.sessions add column if not exists setup_state jsonb default null;
+-- alter table public.sessions alter column config set default '{}'::jsonb;

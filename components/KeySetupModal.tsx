@@ -1,21 +1,57 @@
 'use client'
-import { useState } from 'react'
-import { loadKeys, saveKeys } from '@/lib/keys'
+import { useState, useEffect } from 'react'
+import { loadKeys, saveKeys, saveKeysToAccount, loadKeysFromAccount } from '@/lib/keys'
 import styles from './KeySetupModal.module.css'
 
 interface Props { onClose: () => void }
 
 export default function KeySetupModal({ onClose }: Props) {
-  const initial = loadKeys()
-  const [anthropic, setAnthropic]   = useState(initial.anthropic)
-  const [groq, setGroq]             = useState(initial.groq)
-  const [elevenlabs, setElevenlabs] = useState(initial.elevenlabs)
+  const [groq, setGroq]             = useState('')
+  const [elevenlabs, setElevenlabs] = useState('')
+  const [saveToAccount, setSaveToAccount] = useState(true)
   const [saved, setSaved]           = useState(false)
+  const [syncing, setSyncing]       = useState(false)
+  const [mounted, setMounted]       = useState(false)
 
-  const canSave = !!(anthropic || groq)
+  useEffect(() => {
+    const init = async () => {
+      // Try account keys first, fall back to localStorage
+      setSyncing(true)
+      try {
+        const accountKeys = await loadKeysFromAccount()
+        if (accountKeys?.groq || accountKeys?.elevenlabs) {
+          setGroq(accountKeys.groq)
+          setElevenlabs(accountKeys.elevenlabs)
+        } else {
+          const local = loadKeys()
+          setGroq(local.groq)
+          setElevenlabs(local.elevenlabs)
+        }
+      } catch {
+        const local = loadKeys()
+        setGroq(local.groq)
+        setElevenlabs(local.elevenlabs)
+      } finally {
+        setSyncing(false)
+      }
+      setMounted(true)
+    }
+    init()
+  }, [])
 
-  const handleSave = () => {
-    saveKeys({ anthropic, groq, elevenlabs })
+  const canSave = !!groq
+
+  const handleSave = async () => {
+    if (!canSave) return
+    const keys = { groq, elevenlabs }
+    saveKeys(keys)
+    if (saveToAccount) {
+      try {
+        await saveKeysToAccount(keys)
+      } catch {
+        // Non-fatal if account save fails
+      }
+    }
     setSaved(true)
     setTimeout(onClose, 700)
   }
@@ -28,27 +64,54 @@ export default function KeySetupModal({ onClose }: Props) {
           <button className={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
-        <p className={styles.hint}>Keys are stored only in your browser. They are never sent to any server other than the respective API provider.</p>
+        {syncing ? (
+          <div className={styles.syncingRow}>
+            <div className={styles.syncSpinner} />
+            <span>Loading saved keys…</span>
+          </div>
+        ) : (
+          <>
+            <div className={styles.field}>
+              <label className={styles.label}>Groq API Key <span className={styles.note}>(required — powers AI + Whisper audio)</span></label>
+              <input
+                type="password"
+                value={groq}
+                onChange={e => setGroq(e.target.value)}
+                placeholder="gsk_..."
+                disabled={!mounted}
+              />
+            </div>
 
-        <div className={styles.field}>
-          <label className={styles.label}>Anthropic API Key <span className={styles.optional}>(optional)</span></label>
-          <input type="password" value={anthropic} onChange={e => setAnthropic(e.target.value)} placeholder="sk-ant-..." />
-        </div>
+            <div className={styles.field}>
+              <label className={styles.label}>ElevenLabs API Key <span className={styles.optional}>(optional — realistic panel voices)</span></label>
+              <input
+                type="password"
+                value={elevenlabs}
+                onChange={e => setElevenlabs(e.target.value)}
+                placeholder="..."
+                disabled={!mounted}
+              />
+              <span className={styles.subhint}>Without this, browser text-to-speech is used.</span>
+            </div>
 
-        <div className={styles.field}>
-          <label className={styles.label}>Groq API Key <span className={styles.note}>(recommended — enables Whisper audio)</span></label>
-          <input type="password" value={groq} onChange={e => setGroq(e.target.value)} placeholder="gsk_..." />
-        </div>
+            <label className={styles.accountToggle}>
+              <input
+                type="checkbox"
+                checked={saveToAccount}
+                onChange={e => setSaveToAccount(e.target.checked)}
+              />
+              <span>Save to my Outbindr account (sync across devices)</span>
+            </label>
 
-        <div className={styles.field}>
-          <label className={styles.label}>ElevenLabs API Key <span className={styles.optional}>(optional — realistic panelist voices)</span></label>
-          <input type="password" value={elevenlabs} onChange={e => setElevenlabs(e.target.value)} placeholder="..." />
-          <span className={styles.subhint}>Without this, browser text-to-speech is used as fallback.</span>
-        </div>
+            <p className={styles.hint}>
+              Keys are sent only to their respective API providers. Account sync uses encrypted Supabase user metadata.
+            </p>
 
-        <button className={styles.saveBtn} disabled={!canSave} onClick={handleSave}>
-          {saved ? '✓ Saved' : 'Save Keys'}
-        </button>
+            <button className={styles.saveBtn} disabled={!canSave || !mounted} onClick={handleSave}>
+              {saved ? '✓ Saved' : 'Save Keys'}
+            </button>
+          </>
+        )}
       </div>
     </div>
   )

@@ -1,4 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk'
 import Groq from 'groq-sdk'
 
 export interface AIMessage {
@@ -13,10 +12,8 @@ export interface TextClient {
 
 export function createTextClient(headers: Record<string, string>): TextClient {
   const groqKey = headers['x-groq-key']
-  const anthropicKey = headers['x-anthropic-key']
   if (groqKey) return groqClient(groqKey)
-  if (anthropicKey) return anthropicClient(anthropicKey)
-  throw new Error('No API key provided (x-groq-key or x-anthropic-key header required)')
+  throw new Error('No API key provided (x-groq-key header required)')
 }
 
 function groqClient(apiKey: string): TextClient {
@@ -57,46 +54,6 @@ function groqClient(apiKey: string): TextClient {
         ],
       })
       return res.choices[0]?.message?.content ?? ''
-    },
-  }
-}
-
-function anthropicClient(apiKey: string): TextClient {
-  const client = new Anthropic({ apiKey })
-  return {
-    async streamMessage(system, messages, maxTokens) {
-      const encoder = new TextEncoder()
-      const anthropicStream = client.messages.stream({
-        model: 'claude-sonnet-4-5-20251022',
-        max_tokens: maxTokens,
-        system,
-        messages: messages.map(m => ({ role: m.role, content: m.content })),
-      })
-      return new ReadableStream<Uint8Array>({
-        async start(controller) {
-          try {
-            for await (const event of anthropicStream) {
-              if (
-                event.type === 'content_block_delta' &&
-                event.delta.type === 'text_delta'
-              ) {
-                controller.enqueue(encoder.encode(event.delta.text))
-              }
-            }
-          } finally {
-            controller.close()
-          }
-        },
-      })
-    },
-    async createMessage(system, messages, maxTokens) {
-      const res = await client.messages.create({
-        model: 'claude-sonnet-4-5-20251022',
-        max_tokens: maxTokens,
-        system,
-        messages: messages.map(m => ({ role: m.role, content: m.content })),
-      })
-      return res.content[0].type === 'text' ? res.content[0].text : ''
     },
   }
 }

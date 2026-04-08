@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import SetupScreen from './SetupScreen'
 import SimScreen from './SimScreen'
 import VerdictScreen from './VerdictScreen'
-import { createSession, saveProgress, completeSession } from '@/lib/supabase-sessions'
+import { createDraftSession, createSession, saveProgress, completeSession, saveSetupState } from '@/lib/supabase-sessions'
+import type { SetupState } from '@/lib/supabase-sessions'
 import type { SimConfig, Verdict, Message } from '@/lib/types'
 
 type Phase = 'setup' | 'sim' | 'verdict'
@@ -33,19 +34,35 @@ export default function PitchWars({
 }: Props) {
   const [phase, setPhase]       = useState<Phase>(initialConfig ? 'sim' : 'setup')
   const [config, setConfig]     = useState<SimConfig | null>(initialConfig ?? null)
-  const [ideaFile, setIdeaFile] = useState<File | null>(null)
   const [ideaText, setIdeaText] = useState(initialIdeaText ?? '')
   const [verdict, setVerdict]   = useState<Verdict | null>(null)
   const sessionIdRef            = useRef<string | null>(initialSessionId ?? null)
 
-  const handleLaunch = async (cfg: SimConfig, idea: File | null, text?: string) => {
+  // Create a draft session the moment the setup screen appears
+  useEffect(() => {
+    if (phase !== 'setup') return
+    if (sessionIdRef.current) return // already have one (resume flow)
+    createDraftSession()
+      .then(row => { sessionIdRef.current = row.id })
+      .catch(e => console.error('createDraftSession:', e))
+  }, [phase])
+
+  const handleAutoSave = async (state: SetupState) => {
+    if (!sessionIdRef.current) return
+    try {
+      await saveSetupState(sessionIdRef.current, state)
+    } catch (e) {
+      console.error('saveSetupState error:', e)
+    }
+  }
+
+  const handleLaunch = async (cfg: SimConfig, _idea: File | null, text?: string) => {
     setConfig(cfg)
-    setIdeaFile(idea)
     setIdeaText(text ?? '')
 
-    // Create Supabase session row
+    // Promote the draft session to a running simulation
     try {
-      const row = await createSession(cfg, text ?? '')
+      const row = await createSession(cfg, text ?? '', sessionIdRef.current ?? undefined)
       sessionIdRef.current = row.id
     } catch (e) {
       console.error('Failed to create session:', e)
@@ -81,7 +98,6 @@ export default function PitchWars({
     } else {
       setPhase('setup')
       setConfig(null)
-      setIdeaFile(null)
       setIdeaText('')
       setVerdict(null)
       sessionIdRef.current = null
@@ -94,12 +110,13 @@ export default function PitchWars({
         <SetupScreen
           onLaunch={handleLaunch}
           onBack={onBackToDashboard}
+          onAutoSave={handleAutoSave}
         />
       )}
       {phase === 'sim' && config && (
         <SimScreen
           config={config}
-          ideaFile={ideaFile}
+          ideaFile={null}
           ideaText={ideaText}
           onVerdict={handleVerdict}
           onProgress={handleProgress}
