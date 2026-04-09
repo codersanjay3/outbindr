@@ -199,7 +199,11 @@
 .questionsList {
   display: flex; flex-direction: column; gap: 12px;
   margin-bottom: 24px; padding: 16px;
-  background: #fafafa; border-radius: 6px; border: 1px solid #f0f0f0;
+  background: #fafafa; border-radius: 6px; border: 1px solid #e0e0e0;
+}
+.questionsHeader {
+  font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 600;
+  letter-spacing: 0.18em; color: #aaa; text-transform: uppercase; margin-bottom: 4px;
 }
 .questionItem { display: flex; align-items: flex-start; gap: 10px; }
 .questionAvatar { font-size: 18px; flex-shrink: 0; margin-top: 2px; }

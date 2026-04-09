@@ -415,10 +415,14 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
           }
           setSubtitle('')
 
-          // Bug A fix: in muted mode, don't auto-advance — wait for user click
           if (!interruptRef.current && muteRef.current) {
+            // Muted mode: show text, wait for user to click Next
             setPhase('waiting-muted')
             await waitForMutedAdvance()
+          } else if (!interruptRef.current) {
+            // Unmuted mode: hold text visible for 2s so user can read it
+            // (also acts as buffer when TTS completes faster than expected)
+            await new Promise(res => setTimeout(res, 2000))
           }
         }
 
@@ -466,8 +470,10 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
       // ── END OF ROUND: user turn ──────────────────────────────────────────
       setActivePanelist(null)
       setStreamingText('')
-      setRoundQuestions(roundQs)
       setResponseMode('type')
+      // Set questions first, yield to let React commit, then switch phase
+      setRoundQuestions(roundQs.length > 0 ? roundQs : [])
+      await new Promise(res => setTimeout(res, 0))
       setPhase('round-turn')
 
       const reply = await waitForUserTurn()
@@ -479,7 +485,8 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
           text: reply, round: r, isUser: true,
         }])
       }
-      setRoundQuestions([])
+      // Keep questions visible until after rapid-fire completes
+      // (cleared below after rapid-fire)
 
       // ── RAPID-FIRE follow-up questions ───────────────────────────────────
       try {
@@ -508,6 +515,8 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
       } catch {
         setRfLoading(false)
       }
+      // Clear round questions only after rapid-fire is done
+      setRoundQuestions([])
     }
 
     // ── Generate final evaluation report ──────────────────────────────────
@@ -711,6 +720,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
 
             {roundQuestions.length > 0 && (
               <div className={styles.questionsList}>
+                <div className={styles.questionsHeader}>Questions asked this round</div>
                 {roundQuestions.map((q, i) => (
                   <div key={i} className={styles.questionItem}>
                     <span className={styles.questionAvatar}>{q.avatar}</span>
