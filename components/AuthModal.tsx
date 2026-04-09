@@ -10,6 +10,8 @@ interface Props {
 
 export default function AuthModal({ onSuccess, onClose }: Props) {
   const [mode, setMode]         = useState<'login' | 'signup'>('login')
+  const [fullName, setFullName] = useState('')
+  const [age, setAge]           = useState('')
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [agreed, setAgreed]     = useState(false)
@@ -28,7 +30,16 @@ export default function AuthModal({ onSuccess, onClose }: Props) {
         if (error) throw error
         onSuccess()
       } else {
-        const { error } = await supabase.auth.signUp({ email, password })
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+              age: parseInt(age),
+            },
+          },
+        })
         if (error) throw error
         setInfo('Account created! Check your email to confirm, then sign in.')
         setMode('login')
@@ -54,6 +65,26 @@ export default function AuthModal({ onSuccess, onClose }: Props) {
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>
+          {mode === 'signup' && (
+            <>
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>FULL NAME</label>
+                <input
+                  type="text" value={fullName} required
+                  onChange={e => setFullName(e.target.value)}
+                  placeholder="Jane Smith"
+                />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>AGE</label>
+                <input
+                  type="number" value={age} required min={13} max={120}
+                  onChange={e => setAge(e.target.value)}
+                  placeholder="25"
+                />
+              </div>
+            </>
+          )}
           <div className={styles.field}>
             <label className={styles.fieldLabel}>EMAIL</label>
             <input
@@ -99,7 +130,7 @@ export default function AuthModal({ onSuccess, onClose }: Props) {
           <button
             className={styles.submitBtn}
             type="submit"
-            disabled={loading || (mode === 'signup' && !agreed)}
+            disabled={loading || (mode === 'signup' && (!fullName.trim() || !age || !agreed))}
           >
             {loading ? '…' : mode === 'login' ? 'SIGN IN →' : 'CREATE ACCOUNT →'}
           </button>

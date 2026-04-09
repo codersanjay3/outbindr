@@ -928,13 +928,13 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
               )}
             </div>
 
-            {isSpeaking && (
+            {(isSpeaking || isWaitingMuted) && (
               <button className={styles.interruptBtn} onClick={handleInterrupt}>
                 ⚡ Interrupt
               </button>
             )}
 
-            {/* Bug A: muted mode — show Next button so user controls the pace */}
+            {/* Muted mode — show Next button so user controls the pace */}
             {isWaitingMuted && (
               <button className={styles.mutedNextBtn} onClick={handleMutedAdvance}>
                 NEXT →

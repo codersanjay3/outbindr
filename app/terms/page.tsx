@@ -47,7 +47,7 @@ export default function TermsPage() {
         </Section>
 
         <Section n="3" title="User Accounts">
-          You must provide a valid email address and maintain the security of your account credentials. You are responsible for all activity that occurs under your account. You must be at least 13 years old to use the Service. If you are under 18, you represent that a parent or guardian has reviewed and agreed to these Terms.
+          You must provide a valid email address and maintain the security of your account credentials. During registration, we also collect your full name and age. You are responsible for all activity that occurs under your account. You must be at least 13 years old to use the Service. If you are under 18, you represent that a parent or guardian has reviewed and agreed to these Terms.
         </Section>
 
         <Section n="4" title="Acceptable Use">

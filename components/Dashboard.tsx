@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSessions, deleteSession, type SessionRow } from '@/lib/supabase-sessions'
+import ConversationModal from './ConversationModal'
 import styles from './Dashboard.module.css'
 
 interface Props {
@@ -40,6 +41,7 @@ export default function Dashboard({ onStartNew }: Props) {
   const [loading, setLoading]     = useState(true)
   const [userEmail, setUserEmail] = useState('')
   const [deleting, setDeleting]   = useState<string | null>(null)
+  const [historySession, setHistorySession] = useState<SessionRow | null>(null)
 
   useEffect(() => {
     loadSessions()
@@ -195,6 +197,13 @@ export default function Dashboard({ onStartNew }: Props) {
                       {s.status === 'completed' ? 'VIEW REPORT' : 'CONTINUE'} →
                     </button>
                     <button
+                      className={styles.historyBtn}
+                      onClick={e => { e.stopPropagation(); setHistorySession(s) }}
+                      title="View conversation history"
+                    >
+                      HISTORY
+                    </button>
+                    <button
                       className={styles.deleteBtn}
                       onClick={e => handleDelete(s.id, e)}
                       disabled={deleting === s.id}
@@ -219,6 +228,13 @@ export default function Dashboard({ onStartNew }: Props) {
           </div>
         )}
       </div>
+
+      {historySession && (
+        <ConversationModal
+          session={historySession}
+          onClose={() => setHistorySession(null)}
+        />
+      )}
     </div>
   )
 }

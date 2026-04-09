@@ -173,7 +173,7 @@ export async function makeSessionPublic(sessionId: string): Promise<string> {
     .update({ is_public: true, updated_at: new Date().toISOString() })
     .eq('id', sessionId)
   if (error) throw error
-  return `https://www.outbindr.com/watch/${sessionId}`
+  return `${window.location.origin}/replay/${sessionId}`
 }
 
 /** Fetch a session that is publicly visible (no auth required) */

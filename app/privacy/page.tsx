@@ -43,7 +43,7 @@ export default function PrivacyPage() {
         </Section>
 
         <Section n="2" title="Data We Collect">
-          <strong>Account data:</strong> When you create an account, we collect your email address and a hashed version of your password (managed by Supabase Auth — we never see your raw password).<br /><br />
+          <strong>Account data:</strong> When you create an account, we collect your email address and a hashed version of your password (managed by Supabase Auth — we never see your raw password). We also collect your full name and age (provided at account registration).<br /><br />
           <strong>Session data:</strong> We store the content of your simulation sessions, including panel configurations you upload, pitch text you submit, AI-generated panel responses, scoring results, and conversation history. This is required to provide the resume and replay features.<br /><br />
           <strong>Usage data:</strong> We may collect standard server logs including IP addresses, browser type, and request timestamps for security and rate-limiting purposes.<br /><br />
           <strong>API keys:</strong> If you choose to save your Groq or ElevenLabs API keys to your account, they are stored encrypted in your Supabase user metadata. We do not use them for any purpose other than powering your simulations.

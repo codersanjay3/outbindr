@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import type { SimConfig, Verdict, CoreCriterion, CaseSpecificCriterion } from '@/lib/types'
 import { exportToPDF } from '@/lib/pdf-export'
 import { makeSessionPublic } from '@/lib/supabase-sessions'
+import { supabase } from '@/lib/supabase'
 import styles from './VerdictScreen.module.css'
 
 interface Props { verdict: Verdict; config: SimConfig; onRestart: () => void; backLabel?: string; sessionId?: string }
@@ -45,7 +46,13 @@ function ScoreBar({ score, animated }: { score: number; animated: boolean }) {
 export default function VerdictScreen({ verdict, config, onRestart, backLabel, sessionId }: Props) {
   const [animated, setAnimated] = useState(false)
   const [shareLabel, setShareLabel] = useState('🔗 Share Replay')
+  const [userName, setUserName] = useState('')
   useEffect(() => { setTimeout(() => setAnimated(true), 300) }, [])
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUserName(data.user?.user_metadata?.full_name ?? '')
+    })
+  }, [])
 
   const totalPct    = Math.min(100, Math.max(0, verdict.totalScore))
   const sessionTitle = config.sessionName || config.ideaDocName || 'Session'
@@ -88,6 +95,10 @@ export default function VerdictScreen({ verdict, config, onRestart, backLabel, s
       </header>
 
       <div className={styles.scroll}>
+
+        {userName && (
+          <div className={styles.reportUserName}>{userName}&apos;s Session</div>
+        )}
 
         {/* ── Hero score ── */}
         <section className={styles.hero}>

@@ -125,6 +125,13 @@
   cursor: pointer; white-space: nowrap; transition: background 0.15s;
 }
 .openBtn:hover { background: #333; }
+.historyBtn {
+  background: none; border: 1px solid #ccc; color: #888;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  font-weight: 600; letter-spacing: 0.12em; padding: 8px 12px;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s;
+}
+.historyBtn:hover { border-color: #555; color: #333; }
 .deleteBtn {
   background: none; border: 1px solid #e0e0e0; color: #bbb;
   font-family: 'IBM Plex Mono', monospace; font-size: 12px;
