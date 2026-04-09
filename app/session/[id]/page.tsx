@@ -44,7 +44,9 @@ export default function SessionPage() {
         if (snap && snap.savedAt > new Date(found.updated_at).getTime()) {
           setLocalHistory(snap.history)
           setLocalRound(snap.round)
-          clearSimSnapshot(id)  // consumed — sim will re-save as it runs
+          // Don't clear the snapshot yet — keep it as backup in case the user
+          // navigates away again before the sim's 2s auto-save fires.
+          // SimScreen will overwrite it on its next save cycle.
         }
       }
     } catch {

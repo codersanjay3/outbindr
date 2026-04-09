@@ -162,30 +162,38 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
     })
   }, [])
 
-  // ── Auto-save every 5 seconds to Supabase + localStorage ──────────────────
+  // ── Auto-save every 2 seconds to localStorage + Supabase ────────────────
   useEffect(() => {
     const id = setInterval(() => {
-      saveLocally()   // synchronous — always safe
-      saveToServer()  // async — best effort
-    }, 5_000)
+      saveLocally()
+      saveToServer()
+    }, 2_000)
     return () => clearInterval(id)
   }, [saveLocally, saveToServer])
 
-  // ── Emergency save when tab is hidden or closed ───────────────────────────
+  // ── Emergency save on tab hide / close / client-side unmount ────────────
   useEffect(() => {
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') {
-        saveLocally()   // synchronous — completes before page dies
-        saveToServer()  // async — may or may not complete
+        saveLocally()
+        saveToServer()
       }
     }
-    const onUnload = () => {
-      saveLocally()  // synchronous — guaranteed to complete
-    }
+    // pagehide is more reliable than beforeunload on mobile/modern browsers
+    const onPageHide = () => { saveLocally() }
+    const onUnload   = () => { saveLocally() }
+
     document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', onPageHide)
     window.addEventListener('beforeunload', onUnload)
     return () => {
+      // Component unmounting = client-side navigation away — save now.
+      // This is the fix for Next.js client-side route changes which never
+      // fire beforeunload or visibilitychange.
+      saveLocally()
+      saveToServer()
       document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', onPageHide)
       window.removeEventListener('beforeunload', onUnload)
     }
   }, [saveLocally, saveToServer])
