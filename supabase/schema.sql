@@ -14,7 +14,8 @@ create table if not exists public.sessions (
   verdict        jsonb,
   idea_text      text default '',
   current_round  int default 0,
-  setup_state    jsonb default null
+  setup_state    jsonb default null,
+  is_public      boolean default false not null
 );
 
 -- Row Level Security
@@ -35,7 +36,7 @@ create policy "users_delete_own" on public.sessions
 -- Migration: run these if you have an existing sessions table
 -- alter table public.sessions add column if not exists setup_state jsonb default null;
 -- alter table public.sessions alter column config set default '{}'::jsonb;
--- alter table public.sessions add column if not exists is_public boolean default false;
+-- alter table public.sessions add column if not exists is_public boolean default false not null;
 
 -- Public replay policy — allows anonymous access to sessions marked public
 create policy "public_replay_select" on public.sessions

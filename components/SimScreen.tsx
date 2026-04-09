@@ -20,12 +20,13 @@ interface Props {
 }
 
 type Phase =
-  | 'thinking'      // deliberating + awaiting stream
-  | 'speaking'      // streaming text + TTS
-  | 'interrupted'   // user cut in — waiting for their response
-  | 'round-turn'    // all panelists done — show summary + user input
-  | 'rapid-fire'    // collaborative follow-up questions
-  | 'report'        // generating final verdict
+  | 'thinking'        // deliberating + awaiting stream
+  | 'speaking'        // streaming text + TTS
+  | 'waiting-muted'   // muted: text done, waiting for user to click Next
+  | 'interrupted'     // user cut in — waiting for their response
+  | 'round-turn'      // all panelists done — show summary + user input
+  | 'rapid-fire'      // collaborative follow-up questions
+  | 'report'          // generating final verdict
 
 interface HistoryMsg {
   speaker: string; avatar: string; color: string; bg: string; bd: string
@@ -102,21 +103,32 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
   const ideaB64Ref            = useRef('')
   const ideaMimeRef           = useRef('')
   const pausedRef             = useRef(false)
+  const muteRef               = useRef(false)
   const interruptRef          = useRef(false)
   const abortRef              = useRef<AbortController | null>(null)
   const resolveUserTurnRef    = useRef<((reply: string) => void) | null>(null)
   const resolveInterruptRef   = useRef<((reply: string) => void) | null>(null)
   const resolveRapidFireRef   = useRef<(() => void) | null>(null)
+  const mutedAdvanceRef       = useRef<(() => void) | null>(null)
   const userReplyRef          = useRef('')
   const interruptReplyRef     = useRef('')
   const rfAnswerRef           = useRef('')
   const currentRoundRef       = useRef(initialRound ?? 0)
+  const roundTurnCardRef      = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => { pausedRef.current = paused }, [paused])
+  useEffect(() => { muteRef.current = muted }, [muted])
   useEffect(() => { userReplyRef.current = userReply }, [userReply])
   useEffect(() => { interruptReplyRef.current = interruptReply }, [interruptReply])
   useEffect(() => { rfAnswerRef.current = rfAnswer }, [rfAnswer])
   useEffect(() => { currentRoundRef.current = currentRound }, [currentRound])
+
+  // ── Scroll round-turn card into view when phase changes ──────────────────
+  useEffect(() => {
+    if (phase === 'round-turn' && roundTurnCardRef.current) {
+      roundTurnCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [phase])
 
   // ── Sync mute state to tts module ─────────────────────────────────────────
   useEffect(() => {
@@ -194,6 +206,15 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
 
   const waitForRapidFireDone = (): Promise<void> =>
     new Promise(resolve => { resolveRapidFireRef.current = resolve })
+
+  /** When muted, pause auto-advance until user clicks "NEXT →". */
+  const waitForMutedAdvance = (): Promise<void> =>
+    new Promise(resolve => { mutedAdvanceRef.current = resolve })
+
+  const handleMutedAdvance = useCallback(() => {
+    mutedAdvanceRef.current?.()
+    mutedAdvanceRef.current = null
+  }, [])
 
   const handleUserSubmit = useCallback(() => {
     const reply = userReplyRef.current.trim()
@@ -393,6 +414,12 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
               p.webSpeechPitch, p.webSpeechRate)
           }
           setSubtitle('')
+
+          // Bug A fix: in muted mode, don't auto-advance — wait for user click
+          if (!interruptRef.current && muteRef.current) {
+            setPhase('waiting-muted')
+            await waitForMutedAdvance()
+          }
         }
 
         if (fullText) {
@@ -500,12 +527,13 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  const isSpeaking   = phase === 'speaking'
-  const isThinking   = phase === 'thinking'
-  const isRoundTurn  = phase === 'round-turn'
+  const isSpeaking    = phase === 'speaking'
+  const isThinking    = phase === 'thinking'
+  const isWaitingMuted = phase === 'waiting-muted'
+  const isRoundTurn   = phase === 'round-turn'
   const isInterrupted = phase === 'interrupted'
-  const isRapidFire  = phase === 'rapid-fire'
-  const isReport     = phase === 'report'
+  const isRapidFire   = phase === 'rapid-fire'
+  const isReport      = phase === 'report'
 
   const currentRfQ = rapidFireQs[rfIndex]
 
@@ -676,7 +704,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
 
         {/* ── Round turn ── */}
         {isRoundTurn && (
-          <div className={styles.roundTurnCard}>
+          <div className={styles.roundTurnCard} ref={roundTurnCardRef}>
             <div className={styles.roundTurnTitle}>
               Round {currentRound + 1} — Address the panel
             </div>
@@ -864,6 +892,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
               <div className={styles.speakerBadge}>
                 {isThinking && <span className={styles.badgeThinking}>● thinking</span>}
                 {isSpeaking && <span className={styles.badgeSpeaking}>● speaking</span>}
+                {isWaitingMuted && <span className={styles.badgeMuted}>✕ muted</span>}
               </div>
             </div>
 
@@ -883,6 +912,13 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
             {isSpeaking && (
               <button className={styles.interruptBtn} onClick={handleInterrupt}>
                 ⚡ Interrupt
+              </button>
+            )}
+
+            {/* Bug A: muted mode — show Next button so user controls the pace */}
+            {isWaitingMuted && (
+              <button className={styles.mutedNextBtn} onClick={handleMutedAdvance}>
+                NEXT →
               </button>
             )}
           </div>

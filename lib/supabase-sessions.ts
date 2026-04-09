@@ -49,11 +49,15 @@ export async function getSessionById(id: string): Promise<SessionRow | null> {
 
 /** Create a blank draft session the moment the user starts a new session. */
 export async function createDraftSession(): Promise<SessionRow> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
   // Don't include setup_state in insert — column may not exist yet on older schemas.
   // Supabase will use the column default (null) if it exists.
   const { data, error } = await supabase
     .from('sessions')
     .insert({
+      user_id:       user.id,
       config:        {},
       idea_text:     '',
       title:         'Draft',
@@ -110,9 +114,13 @@ export async function createSession(
     return data as SessionRow
   }
 
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
   const { data, error } = await supabase
     .from('sessions')
     .insert({
+      user_id:       user.id,
       config,
       idea_text:     ideaText,
       title,
