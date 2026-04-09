@@ -45,7 +45,12 @@ export default function AuthModal({ onSuccess, onClose }: Props) {
         setMode('login')
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
+      const msg = err instanceof Error ? err.message : 'Something went wrong'
+      if (msg.toLowerCase().includes('email') && (msg.toLowerCase().includes('limit') || msg.toLowerCase().includes('rate'))) {
+        setError('Sign-ups are temporarily paused due to high demand. Please try again in a few minutes.')
+      } else {
+        setError(msg)
+      }
     } finally {
       setLoading(false)
     }
