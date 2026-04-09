@@ -75,6 +75,7 @@ Choose 2–4 criteria relevant to this specific pitch/context. Weights must sum 
   Example: criterion weight 12, score 4.0 → (4.0/5) × 12 = 9.6 points
 
 totalScore = coreScore + caseSpecificScore  (max 100)
+Keep all computed scores as precise decimals — do NOT round to whole numbers.
 
 RECOMMENDATION TIERS: exceptional ≥90 / strong 75–89 / competitive 60–74 / average 45–59 / below <45
 
