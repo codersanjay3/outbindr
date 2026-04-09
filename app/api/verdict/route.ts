@@ -43,9 +43,17 @@ ${presenterAnswers || '(presenter did not provide answers — score accordingly)
 
 === UNIVERSAL PANEL EVALUATION RUBRIC ===
 
+SCORING SCALE — use the full range honestly based on what was actually said:
+  1 = Absent or completely failed to address
+  2 = Weak — attempted but unconvincing or incoherent
+  3 = Mediocre — passable but forgettable; assigns a totalScore near 60
+  4 = Good — clear, confident, and persuasive; assigns a totalScore near 80
+  5 = Outstanding — exceptional, memorable, best-in-class; assigns a totalScore near 100
+IMPORTANT: Do NOT default to 3 as a safe middle ground. A presenter who gave strong, well-reasoned answers deserves 4s and 5s. Only assign 3 if their response was genuinely mediocre. Score honestly across the full range.
+
 CORE EVALUATION (75 points total):
-Score each criterion 1–5 (decimals allowed, e.g. 3.5). Compute coreScore, caseSpecificScore, totalScore as precise decimal values using the formulas — do NOT round to whole numbers.
-Criteria and weights (sum = 100%, applied to the 75-point core):
+Score each criterion 1–5 (decimals allowed, e.g. 3.5).
+Criteria and weights (must sum to 100%):
 - communicationSkills    15%
 - criticalThinking       15%
 - subjectMastery         15%
@@ -57,9 +65,16 @@ Criteria and weights (sum = 100%, applied to the 75-point core):
 - problemSolvingAbility  10%
 - overallImpact           5%
 
+FORMULA — compute exactly using this:
+  coreScore = sum of [ (score / 5) × weight_as_decimal × 75 ] across all 10 core criteria
+  Example: communicationSkills score 4.0 → (4.0/5) × 0.15 × 75 = 9.0 points
+
 CASE-SPECIFIC EVALUATION (25 points total):
 Choose 2–4 criteria relevant to this specific pitch/context. Weights must sum to exactly 25.
-Case-specific score = sum of (score/5 × weight).
+  caseSpecificScore = sum of [ (score / 5) × weight ] across all case criteria
+  Example: criterion weight 12, score 4.0 → (4.0/5) × 12 = 9.6 points
+
+totalScore = coreScore + caseSpecificScore  (max 100)
 
 RECOMMENDATION TIERS: exceptional ≥90 / strong 75–89 / competitive 60–74 / average 45–59 / below <45
 
