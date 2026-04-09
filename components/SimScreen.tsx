@@ -48,7 +48,33 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
   const [activePanelist, setActivePanelist] = useState<Panelist | null>(null)
   const [streamingText, setStreamingText]   = useState('')
   const [subtitle, setSubtitle]             = useState('')
-  const [historyMsgs, setHistoryMsgs]       = useState<HistoryMsg[]>([])
+  const [historyMsgs, setHistoryMsgs]       = useState<HistoryMsg[]>(() => {
+    // Pre-populate from initialHistory so the drawer is full on resume
+    if (!initialHistory?.length) return []
+    return initialHistory
+      .filter(m => !m.content.startsWith('[Internal deliberation by'))
+      .map(m => {
+        if (m.role === 'user') {
+          return {
+            speaker: 'You', avatar: '💬', color: '#888',
+            bg: '#f5f5f5', bd: '#e0e0e0',
+            text: m.content.replace(/^\[Rapid-fire answer\]\s*/,'').replace(/^\[Interrupts [^\]]+\]:\s*/,''),
+            round: m.round ?? 0, isUser: true,
+          }
+        }
+        const p = panelists.find(px => px.name === m.speaker)
+        return {
+          speaker: m.speaker ?? '',
+          avatar:  p?.avatar  ?? '🎤',
+          color:   p?.color   ?? '#555',
+          bg:      p?.bg      ?? '#f5f5f5',
+          bd:      p?.bd      ?? '#e0e0e0',
+          text:    m.content,
+          round:   m.round ?? 0,
+          isUser:  false,
+        }
+      })
+  })
   const [showHistory, setShowHistory]       = useState(false)
   const [userReply, setUserReply]           = useState('')
   const [edges, setEdges]                   = useState<GraphEdge[]>([])
@@ -258,8 +284,10 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
 
   const run = async () => {
     const keys = loadKeys()
+    // Start from initialRound so resumed sessions don't redo completed rounds
+    const startRound = initialRound ?? 0
 
-    for (let r = 0; r < rounds; r++) {
+    for (let r = startRound; r < rounds; r++) {
       setCurrentRound(r)
       currentRoundRef.current = r
       const roundQs: RoundQuestion[] = []
@@ -267,7 +295,8 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
       for (let pi = 0; pi < panelists.length; pi++) {
         await waitIfPaused()
         const p = panelists[pi]
-        const isFirst = r === 0 && pi === 0
+        // Only treat as "first ever" if we're genuinely starting fresh (no prior history)
+        const isFirst = r === 0 && pi === 0 && !initialHistory?.length
 
         setActivePanelist(p)
         setStreamingText('')
