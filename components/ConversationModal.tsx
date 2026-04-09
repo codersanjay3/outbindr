@@ -1,7 +1,8 @@
 'use client'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { type SessionRow } from '@/lib/supabase-sessions'
 import { type Message } from '@/lib/types'
+import { supabase } from '@/lib/supabase'
 import styles from './ConversationModal.module.css'
 
 interface Props {
@@ -11,6 +12,13 @@ interface Props {
 
 export default function ConversationModal({ session, onClose }: Props) {
   const overlayRef = useRef<HTMLDivElement>(null)
+  const [userName, setUserName] = useState('')
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUserName(data.user?.user_metadata?.full_name ?? '')
+    })
+  }, [])
 
   // Close on Escape key
   useEffect(() => {
@@ -51,8 +59,9 @@ export default function ConversationModal({ session, onClose }: Props) {
         {/* Header */}
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <div className={styles.headerLabel}>SESSION HISTORY</div>
+            <div className={styles.headerLabel}>OUTBINDR SIMULATION</div>
             <div className={styles.headerTitle}>{session.title ?? 'Untitled Pitch'}</div>
+            {userName && <div className={styles.headerUser}>{userName}&apos;s Session</div>}
           </div>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close">✕</button>
         </div>

@@ -76,6 +76,7 @@ export interface SimConfig {
   rounds:             number
   panelDocName:       string
   ideaDocName:        string
-  sessionName?:       string   // user-provided session title
+  sessionName?:        string   // user-provided session title
   sessionDescription?: string  // user-provided description
+  ownerName?:          string   // stored when session is made public
 }

@@ -45,6 +45,11 @@
   color: #000;
   line-height: 1.3;
 }
+.headerUser {
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 0.06em;
+}
 .closeBtn {
   background: none;
   border: 1px solid #e0e0e0;

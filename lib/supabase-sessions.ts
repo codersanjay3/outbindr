@@ -168,9 +168,17 @@ export async function deleteSession(sessionId: string): Promise<void> {
 
 /** Mark a session as publicly shareable and return the watch URL */
 export async function makeSessionPublic(sessionId: string): Promise<string> {
+  // Embed ownerName into config so the public replay page can display it
+  const [{ data: { user } }, { data: current }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from('sessions').select('config').eq('id', sessionId).single(),
+  ])
+  const ownerName = user?.user_metadata?.full_name ?? ''
+  const mergedConfig = current?.config ? { ...current.config, ownerName } : { ownerName }
+
   const { error } = await supabase
     .from('sessions')
-    .update({ is_public: true, updated_at: new Date().toISOString() })
+    .update({ is_public: true, config: mergedConfig, updated_at: new Date().toISOString() })
     .eq('id', sessionId)
   if (error) throw error
   return `${window.location.origin}/replay/${sessionId}`

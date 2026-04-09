@@ -96,9 +96,12 @@ export default function VerdictScreen({ verdict, config, onRestart, backLabel, s
 
       <div className={styles.scroll}>
 
-        {userName && (
-          <div className={styles.reportUserName}>{userName}&apos;s Session</div>
-        )}
+        {/* ── Report identity banner ── */}
+        <div className={styles.reportBanner}>
+          <div className={styles.reportBannerLabel}>OUTBINDR SIMULATION</div>
+          <div className={styles.reportBannerTitle}>{sessionTitle}</div>
+          {userName && <div className={styles.reportBannerUser}>{userName}&apos;s Results</div>}
+        </div>
 
         {/* ── Hero score ── */}
         <section className={styles.hero}>
