@@ -424,7 +424,8 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
           setSubtitle('')
 
           if (!interruptRef.current && muteRef.current) {
-            // Muted mode: show text, wait for user to click Next
+            // Muted mode: ensure full text is visible, then wait for user to click Next
+            setStreamingText(fullText)
             setPhase('waiting-muted')
             await waitForMutedAdvance()
           } else if (!interruptRef.current) {
@@ -523,8 +524,8 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
       } catch {
         setRfLoading(false)
       }
-      // Clear round questions only after rapid-fire is done
-      setRoundQuestions([])
+      // Don't clear roundQuestions here — the next round's setRoundQuestions(roundQs)
+      // will overwrite it, and clearing now can race with that update.
     }
 
     // ── Generate final evaluation report ──────────────────────────────────
@@ -577,7 +578,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
         <div className={styles.headerRight}>
           <button
             className={`${styles.pauseBtn} ${muted ? styles.muteBtnOn : ''}`}
-            onClick={() => setMuted_(m => !m)}
+            onClick={() => setMuted_(m => { muteRef.current = !m; return !m })}
             title={muted ? 'Unmute audio' : 'Mute audio'}
           >
             {muted ? 'UNMUTE' : 'MUTE'}

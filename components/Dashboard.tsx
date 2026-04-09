@@ -46,6 +46,15 @@ export default function Dashboard({ onStartNew }: Props) {
     supabase.auth.getUser().then(({ data }) => {
       setUserEmail(data.user?.email ?? '')
     })
+
+    // Re-fetch sessions whenever the user returns to this tab/page
+    // (covers Next.js client-side navigation back, tab switching, etc.)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') loadSessions()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadSessions = async () => {
@@ -159,7 +168,7 @@ export default function Dashboard({ onStartNew }: Props) {
                       {s.status === 'completed' && s.verdict && (
                         <>
                           <span>·</span>
-                          <span className={styles.sessionScore}>{s.verdict.totalScore}/100</span>
+                          <span className={styles.sessionScore}>{Number(s.verdict.totalScore).toFixed(2)}/100</span>
                         </>
                       )}
                     </div>

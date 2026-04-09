@@ -36,7 +36,7 @@ function ScoreBar({ score, animated }: { score: number; animated: boolean }) {
         <div className={styles.barFill} style={{ width: animated ? `${pct}%` : '0%' }} />
       </div>
       <span className={styles.barScore}>
-        <strong>{score}</strong><span className={styles.barOf}>&thinsp;/&thinsp;5</span>
+        <strong>{Number(score).toFixed(1)}</strong><span className={styles.barOf}>&thinsp;/&thinsp;5</span>
       </span>
     </div>
   )
@@ -96,16 +96,16 @@ export default function VerdictScreen({ verdict, config, onRestart, backLabel, s
               className={styles.heroRing}
               style={{ '--pct': `${animated ? totalPct : 0}%` } as React.CSSProperties}
             >
-              <span className={styles.heroNum}>{verdict.totalScore}</span>
+              <span className={styles.heroNum}>{Number(verdict.totalScore).toFixed(2)}</span>
               <span className={styles.heroOf}>/100</span>
             </div>
           </div>
           <div className={styles.heroMeta}>
             <div className={styles.heroTier}>{TIER_LABELS[verdict.recommendation] ?? verdict.recommendation}</div>
             <div className={styles.heroBreakdown}>
-              <span>Core <strong>{verdict.coreScore}</strong>/75</span>
+              <span>Core <strong>{Number(verdict.coreScore).toFixed(2)}</strong>/75</span>
               <span className={styles.heroDivider}>·</span>
-              <span>Case-specific <strong>{verdict.caseSpecificScore}</strong>/25</span>
+              <span>Case-specific <strong>{Number(verdict.caseSpecificScore).toFixed(2)}</strong>/25</span>
             </div>
             {config.sessionDescription && (
               <div className={styles.heroDesc}>{config.sessionDescription}</div>
@@ -220,19 +220,19 @@ export default function VerdictScreen({ verdict, config, onRestart, backLabel, s
             <div className={styles.scoringRow}>
               <span>Core Score</span>
               <span className={styles.scoringValue}>
-                {verdict.coreScore}<span className={styles.scoringOf}>&thinsp;/&thinsp;75</span>
+                {Number(verdict.coreScore).toFixed(2)}<span className={styles.scoringOf}>&thinsp;/&thinsp;75</span>
               </span>
             </div>
             <div className={styles.scoringRow}>
               <span>Case-Specific Score</span>
               <span className={styles.scoringValue}>
-                {verdict.caseSpecificScore}<span className={styles.scoringOf}>&thinsp;/&thinsp;25</span>
+                {Number(verdict.caseSpecificScore).toFixed(2)}<span className={styles.scoringOf}>&thinsp;/&thinsp;25</span>
               </span>
             </div>
             <div className={`${styles.scoringRow} ${styles.scoringTotal}`}>
               <span>Total Score</span>
               <span className={styles.scoringValue}>
-                {verdict.totalScore}<span className={styles.scoringOf}>&thinsp;/&thinsp;100</span>
+                {Number(verdict.totalScore).toFixed(2)}<span className={styles.scoringOf}>&thinsp;/&thinsp;100</span>
               </span>
             </div>
           </div>

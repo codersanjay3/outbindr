@@ -44,7 +44,7 @@ ${presenterAnswers || '(presenter did not provide answers — score accordingly)
 === UNIVERSAL PANEL EVALUATION RUBRIC ===
 
 CORE EVALUATION (75 points total):
-Score each criterion 1–5. Weighted core score = sum of (score/5 × weight% × 75).
+Score each criterion 1–5 (decimals allowed, e.g. 3.5). Compute coreScore, caseSpecificScore, totalScore as precise decimal values using the formulas — do NOT round to whole numbers.
 Criteria and weights (sum = 100%, applied to the 75-point core):
 - communicationSkills    15%
 - criticalThinking       15%
@@ -91,9 +91,9 @@ Return ONLY a single valid JSON object — no markdown, no commentary:
     "standoutMoment": "...",
     "biggestRisk": "..."
   },
-  "coreScore": 45,
-  "caseSpecificScore": 15,
-  "totalScore": 60,
+  "coreScore": 45.75,
+  "caseSpecificScore": 14.25,
+  "totalScore": 60.00,
   "recommendation": "average"
 }`
 
