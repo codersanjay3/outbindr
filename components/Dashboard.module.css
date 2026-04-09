@@ -132,6 +132,14 @@
   cursor: pointer; white-space: nowrap; transition: all 0.15s;
 }
 .historyBtn:hover { border-color: #555; color: #333; }
+.shareBtn {
+  background: none; border: 1px solid #7c3aed; color: #7c3aed;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  font-weight: 600; letter-spacing: 0.12em; padding: 8px 12px;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s;
+}
+.shareBtn:hover { background: #7c3aed; color: #fff; }
+.shareBtn:disabled { opacity: 0.5; cursor: default; }
 .deleteBtn {
   background: none; border: 1px solid #e0e0e0; color: #bbb;
   font-family: 'IBM Plex Mono', monospace; font-size: 12px;

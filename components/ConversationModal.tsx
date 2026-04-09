@@ -64,8 +64,16 @@ export default function ConversationModal({ session, onClose }: Props) {
           ) : (
             messages.map((m: Message, i: number) => {
               const isUser = m.role === 'user'
+              const isRfQuestion = !isUser && m.content?.startsWith('[Rapid-fire question]')
+              const isRfAnswer   = isUser  && m.content?.startsWith('[Rapid-fire answer]')
               const panelist = m.speaker ? panelistMap[m.speaker] : undefined
               const roundLabel = m.round != null ? `R${m.round}` : null
+
+              const displayContent = isRfQuestion
+                ? m.content.replace(/^\[Rapid-fire question\]\s*/, '')
+                : isRfAnswer
+                  ? m.content.replace(/^\[Rapid-fire answer\]\s*/, '')
+                  : m.content
 
               return (
                 <div
@@ -95,9 +103,12 @@ export default function ConversationModal({ session, onClose }: Props) {
                       <span className={styles.speakerName}>
                         {isUser ? 'You' : (m.speaker ?? 'Panelist')}
                       </span>
+                      {(isRfQuestion || isRfAnswer) && (
+                        <span className={styles.rfTag}>RAPID-FIRE</span>
+                      )}
                       {roundLabel && <span className={styles.roundTag}>{roundLabel}</span>}
                     </div>
-                    <div className={styles.bubbleContent}>{m.content}</div>
+                    <div className={styles.bubbleContent}>{displayContent}</div>
                   </div>
 
                   {isUser && <div className={styles.avatarCol} />}

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { getSessions, deleteSession, type SessionRow } from '@/lib/supabase-sessions'
+import { getSessions, deleteSession, makeSessionPublic, type SessionRow } from '@/lib/supabase-sessions'
 import ConversationModal from './ConversationModal'
 import styles from './Dashboard.module.css'
 
@@ -41,6 +41,8 @@ export default function Dashboard({ onStartNew }: Props) {
   const [loading, setLoading]     = useState(true)
   const [userEmail, setUserEmail] = useState('')
   const [deleting, setDeleting]   = useState<string | null>(null)
+  const [sharing, setSharing]     = useState<string | null>(null)
+  const [shareLabel, setShareLabel] = useState<Record<string, string>>({})
   const [historySession, setHistorySession] = useState<SessionRow | null>(null)
 
   useEffect(() => {
@@ -88,6 +90,22 @@ export default function Dashboard({ onStartNew }: Props) {
       setSessions(prev => prev.filter(s => s.id !== id))
     } finally {
       setDeleting(null)
+    }
+  }
+
+  const handleShare = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setSharing(id)
+    try {
+      const url = await makeSessionPublic(id)
+      await navigator.clipboard.writeText(url)
+      setShareLabel(prev => ({ ...prev, [id]: 'COPIED!' }))
+      setTimeout(() => setShareLabel(prev => ({ ...prev, [id]: 'SHARE' })), 2000)
+    } catch {
+      setShareLabel(prev => ({ ...prev, [id]: 'ERROR' }))
+      setTimeout(() => setShareLabel(prev => ({ ...prev, [id]: 'SHARE' })), 2000)
+    } finally {
+      setSharing(null)
     }
   }
 
@@ -203,6 +221,16 @@ export default function Dashboard({ onStartNew }: Props) {
                     >
                       HISTORY
                     </button>
+                    {s.status === 'completed' && (
+                      <button
+                        className={styles.shareBtn}
+                        onClick={e => handleShare(s.id, e)}
+                        disabled={sharing === s.id}
+                        title="Copy shareable link"
+                      >
+                        {shareLabel[s.id] ?? 'SHARE'}
+                      </button>
+                    )}
                     <button
                       className={styles.deleteBtn}
                       onClick={e => handleDelete(s.id, e)}

@@ -244,6 +244,15 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
     setRfAnswer('')
     setRapidFireQs(prev => {
       const next = rfIndex + 1
+      const currentQ = prev[rfIndex]
+      if (currentQ) {
+        historyRef.current.push({
+          role: 'assistant',
+          content: `[Rapid-fire question] ${currentQ.question}`,
+          speaker: currentQ.panelist,
+          round: currentRoundRef.current,
+        })
+      }
       if (answer) {
         historyRef.current.push({
           role: 'user',
