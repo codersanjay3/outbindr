@@ -53,7 +53,24 @@
   cursor: pointer; transition: background 0.15s;
 }
 .submitBtn:hover:not(:disabled) { background: #222; }
-.submitBtn:disabled { background: #ccc; cursor: not-allowed; }
+.submitBtn:disabled { background: #e8e8e8; color: #aaa; cursor: not-allowed; }
+
+/* ── Terms / privacy agreement ── */
+.agreeRow {
+  display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+}
+.agreeCheck {
+  width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px;
+  accent-color: #000; cursor: pointer;
+}
+.agreeText {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; color: #555; line-height: 1.6; letter-spacing: 0.02em;
+}
+.agreeLink {
+  color: #000; text-decoration: underline; font-family: inherit;
+}
+.agreeLink:hover { opacity: 0.6; }
 
 .switchRow {
   font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #666;

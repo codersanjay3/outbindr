@@ -12,6 +12,7 @@ export default function AuthModal({ onSuccess, onClose }: Props) {
   const [mode, setMode]         = useState<'login' | 'signup'>('login')
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
+  const [agreed, setAgreed]     = useState(false)
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const [info, setInfo]         = useState('')
@@ -70,10 +71,36 @@ export default function AuthModal({ onSuccess, onClose }: Props) {
             />
           </div>
 
+          {mode === 'signup' && (
+            <label className={styles.agreeRow}>
+              <input
+                type="checkbox"
+                className={styles.agreeCheck}
+                checked={agreed}
+                onChange={e => setAgreed(e.target.checked)}
+                required
+              />
+              <span className={styles.agreeText}>
+                I have read and agree to the{' '}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className={styles.agreeLink}>
+                  Terms of Service
+                </a>{' '}
+                and{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className={styles.agreeLink}>
+                  Privacy Policy
+                </a>
+              </span>
+            </label>
+          )}
+
           {error && <div className={styles.error}>{error}</div>}
           {info  && <div className={styles.info}>{info}</div>}
 
-          <button className={styles.submitBtn} type="submit" disabled={loading}>
+          <button
+            className={styles.submitBtn}
+            type="submit"
+            disabled={loading || (mode === 'signup' && !agreed)}
+          >
             {loading ? '…' : mode === 'login' ? 'SIGN IN →' : 'CREATE ACCOUNT →'}
           </button>
         </form>
