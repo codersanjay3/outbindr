@@ -27,9 +27,12 @@ export interface SessionRow {
 
 /** Fetch all sessions for a user (newest first) */
 export async function getSessions(): Promise<SessionRow[]> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
   const { data, error } = await supabase
     .from('sessions')
     .select('*')
+    .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
     .limit(20)
   if (error) throw error
