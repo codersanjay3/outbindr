@@ -311,6 +311,22 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
                     <div className={styles.pInfo}>
                       <div className={styles.pName} style={{ color: p.color }}>{p.name}</div>
                       <div className={styles.pRole}>{p.role}</div>
+                      <div className={styles.pVoiceRow}>
+                        <span className={styles.pVoiceLabel}>🔊 EL Voice ID</span>
+                        <input
+                          className={styles.pVoiceInput}
+                          type="text"
+                          placeholder="paste ElevenLabs voice ID"
+                          value={p.voiceId}
+                          onChange={e => {
+                            const val = e.target.value.trim()
+                            setPanelists(prev => prev.map((x, j) =>
+                              j === i ? { ...x, voiceId: val } : x
+                            ))
+                          }}
+                          spellCheck={false}
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}

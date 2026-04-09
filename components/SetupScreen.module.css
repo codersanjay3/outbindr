@@ -131,6 +131,24 @@
 .pInfo { flex: 1; min-width: 0; }
 .pName { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; color: #000; }
 .pRole { font-size: 10px; color: #888; margin-top: 2px; line-height: 1.4; }
+.pVoiceRow {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 7px;
+}
+.pVoiceLabel {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px; font-weight: 600; letter-spacing: 0.1em;
+  color: #aaa; white-space: nowrap;
+}
+.pVoiceInput {
+  flex: 1; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; color: #333; background: #fafafa;
+  border: 1px solid #e0e0e0; padding: 4px 8px;
+  outline: none; min-width: 0;
+  transition: border-color 0.15s;
+}
+.pVoiceInput:focus { border-color: #888; background: #fff; }
+.pVoiceInput::placeholder { color: #bbb; }
 
 /* ── Mode toggle ── */
 .modeToggle {
