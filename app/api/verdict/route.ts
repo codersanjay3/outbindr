@@ -63,26 +63,27 @@ Case-specific score = sum of (score/5 × weight).
 
 RECOMMENDATION TIERS: exceptional ≥90 / strong 75–89 / competitive 60–74 / average 45–59 / below <45
 
-Return ONLY a single valid JSON object — no markdown, no commentary:
+Return ONLY a single valid JSON object — no markdown, no commentary.
+The numbers below are FORMAT EXAMPLES ONLY — your actual scores must honestly reflect the presenter's true performance. Do not anchor to these values.
 {
   "core": {
-    "communicationSkills":    {"score": 3, "notes": "..."},
-    "criticalThinking":       {"score": 3, "notes": "..."},
-    "subjectMastery":         {"score": 3, "notes": "..."},
-    "confidencePresence":     {"score": 3, "notes": "..."},
-    "adaptability":           {"score": 3, "notes": "..."},
-    "composureUnderPressure": {"score": 3, "notes": "..."},
-    "authenticity":           {"score": 3, "notes": "..."},
-    "engagementInteraction":  {"score": 3, "notes": "..."},
-    "problemSolvingAbility":  {"score": 3, "notes": "..."},
-    "overallImpact":          {"score": 3, "notes": "..."}
+    "communicationSkills":    {"score": 4.5, "notes": "..."},
+    "criticalThinking":       {"score": 3.8, "notes": "..."},
+    "subjectMastery":         {"score": 4.2, "notes": "..."},
+    "confidencePresence":     {"score": 4.0, "notes": "..."},
+    "adaptability":           {"score": 3.5, "notes": "..."},
+    "composureUnderPressure": {"score": 4.1, "notes": "..."},
+    "authenticity":           {"score": 4.8, "notes": "..."},
+    "engagementInteraction":  {"score": 3.9, "notes": "..."},
+    "problemSolvingAbility":  {"score": 4.3, "notes": "..."},
+    "overallImpact":          {"score": 4.0, "notes": "..."}
   },
   "caseSpecific": {
     "justification": "Why these criteria were chosen for this context.",
     "contextPerformance": "How the presenter performed relative to this context.",
     "criteria": [
-      {"name": "...", "weight": 12, "score": 3, "notes": "..."},
-      {"name": "...", "weight": 13, "score": 3, "notes": "..."}
+      {"name": "...", "weight": 12, "score": 4.2, "notes": "..."},
+      {"name": "...", "weight": 13, "score": 3.7, "notes": "..."}
     ]
   },
   "summary": {
@@ -91,10 +92,10 @@ Return ONLY a single valid JSON object — no markdown, no commentary:
     "standoutMoment": "...",
     "biggestRisk": "..."
   },
-  "coreScore": 45.75,
-  "caseSpecificScore": 14.25,
-  "totalScore": 60.00,
-  "recommendation": "average"
+  "coreScore": 62.55,
+  "caseSpecificScore": 19.37,
+  "totalScore": 81.92,
+  "recommendation": "strong"
 }`
 
   try {
