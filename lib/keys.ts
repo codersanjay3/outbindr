@@ -33,8 +33,8 @@ export async function saveKeysToAccount(keys: StoredKeys): Promise<void> {
 
 /** Load keys from Supabase user_metadata. Returns null if not logged in or no keys stored. */
 export async function loadKeysFromAccount(): Promise<StoredKeys | null> {
-  const { data } = await supabase.auth.getUser()
-  const meta = data?.user?.user_metadata
+  const { data } = await supabase.auth.getSession()
+  const meta = data?.session?.user?.user_metadata
   if (!meta) return null
   const groq       = (meta.ob_groq_key as string)       ?? ''
   const elevenlabs = (meta.ob_elevenlabs_key as string) ?? ''

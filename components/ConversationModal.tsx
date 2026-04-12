@@ -15,8 +15,8 @@ export default function ConversationModal({ session, onClose }: Props) {
   const [userName, setUserName] = useState('')
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUserName(data.user?.user_metadata?.full_name ?? '')
+    supabase.auth.getSession().then(({ data }) => {
+      setUserName(data.session?.user?.user_metadata?.full_name ?? '')
     })
   }, [])
 

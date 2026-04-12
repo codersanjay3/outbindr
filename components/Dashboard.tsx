@@ -47,8 +47,8 @@ export default function Dashboard({ onStartNew }: Props) {
 
   useEffect(() => {
     loadSessions()
-    supabase.auth.getUser().then(({ data }) => {
-      setUserEmail(data.user?.email ?? '')
+    supabase.auth.getSession().then(({ data }) => {
+      setUserEmail(data.session?.user?.email ?? '')
     })
 
     // Re-fetch sessions whenever the user returns to this tab/page
@@ -111,7 +111,8 @@ export default function Dashboard({ onStartNew }: Props) {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.push('/')
+    // Full reload so page.tsx re-mounts and getSession() finds no session → landing
+    window.location.href = '/'
   }
 
   // Only real (launched) sessions count toward the 3-session limit

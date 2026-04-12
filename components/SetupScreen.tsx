@@ -70,7 +70,25 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
         pitchMode: pm,
       })
     }, 10_000)
-    return () => clearInterval(id)
+
+    const saveOnLeave = () => {
+      const { panelists: p, ideaText: it, rounds: r, pitchMode: pm } = autoSaveRef.current
+      onAutoSave({
+        panelists: p,
+        ideaText:  it,
+        rounds:    r,
+        title:     sessionNameRef.current || (p.length > 0 ? `Draft — ${p.map(x => x.name).join(', ')}` : 'Draft'),
+        pitchMode: pm,
+      })
+    }
+    window.addEventListener('pagehide', saveOnLeave)
+    window.addEventListener('beforeunload', saveOnLeave)
+
+    return () => {
+      clearInterval(id)
+      window.removeEventListener('pagehide', saveOnLeave)
+      window.removeEventListener('beforeunload', saveOnLeave)
+    }
   }, [onAutoSave])
 
   const refreshKeys = () => {

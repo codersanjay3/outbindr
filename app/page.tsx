@@ -12,7 +12,10 @@ export default function Home() {
   const [view, setView] = useState<View>('landing')
   const [checking, setChecking] = useState(true)
 
-  // On mount, check if user is already signed in
+  // On mount: read the locally-stored session.
+  // getSession() only reads localStorage — no network call, no auth events.
+  // Navigation is NEVER driven by onAuthStateChange to avoid race conditions
+  // where Supabase fires SIGNED_OUT immediately after SIGNED_IN.
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
@@ -21,16 +24,6 @@ export default function Home() {
       }
       setChecking(false)
     })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setView('dashboard')
-        syncKeysFromAccount().catch(() => {})
-      } else {
-        setView('landing')
-      }
-    })
-    return () => subscription.unsubscribe()
   }, [])
 
   if (checking) return null

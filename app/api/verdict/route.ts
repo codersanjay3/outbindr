@@ -46,10 +46,10 @@ ${presenterAnswers || '(presenter did not provide answers — score accordingly)
 SCORING SCALE — use the full range honestly based on what was actually said:
   1 = Absent or completely failed to address
   2 = Weak — attempted but unconvincing or incoherent
-  3 = Mediocre — passable but forgettable; assigns a totalScore near 60
-  4 = Good — clear, confident, and persuasive; assigns a totalScore near 80
-  5 = Outstanding — exceptional, memorable, best-in-class; assigns a totalScore near 100
-IMPORTANT: Do NOT default to 3 as a safe middle ground. A presenter who gave strong, well-reasoned answers deserves 4s and 5s. Only assign 3 if their response was genuinely mediocre. Score honestly across the full range.
+  3 = Mediocre — passable but forgettable
+  4 = Good — clear, confident, and persuasive
+  5 = Outstanding — exceptional, memorable, best-in-class
+IMPORTANT: Do NOT default to 3 as a safe middle ground. A presenter who gave strong, well-reasoned answers deserves 4s and 5s. Only assign 3 if their response was genuinely mediocre. Score honestly across the full 1–5 range. Strong presenters should regularly receive scores of 4 and 5, resulting in total scores of 80–100.
 
 CORE EVALUATION (75 points total):
 Score each criterion 1–5 (decimals allowed, e.g. 3.5).
@@ -108,10 +108,10 @@ The numbers below are FORMAT EXAMPLES ONLY — your actual scores must honestly 
     "standoutMoment": "...",
     "biggestRisk": "..."
   },
-  "coreScore": 62.55,
-  "caseSpecificScore": 19.37,
-  "totalScore": 81.92,
-  "recommendation": "strong"
+  "coreScore": 73.5,
+  "caseSpecificScore": 21.0,
+  "totalScore": 94.5,
+  "recommendation": "exceptional"
 }`
 
   try {
@@ -120,8 +120,11 @@ The numbers below are FORMAT EXAMPLES ONLY — your actual scores must honestly 
       [{ role: 'user', content: 'Generate the evaluation report JSON now.' }],
       1400
     )
-    const clean = raw.replace(/```json|```/g, '').trim()
-    const verdict = JSON.parse(clean)
+    // Strip markdown fences, then extract the outermost JSON object
+    const stripped = raw.replace(/```json|```/g, '').trim()
+    const jsonMatch = stripped.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) throw new Error('No JSON object found in response')
+    const verdict = JSON.parse(jsonMatch[0])
     return NextResponse.json(verdict)
   } catch (err) {
     console.error('verdict error:', err)

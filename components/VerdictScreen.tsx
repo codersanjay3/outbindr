@@ -49,8 +49,8 @@ export default function VerdictScreen({ verdict, config, onRestart, backLabel, s
   const [userName, setUserName] = useState('')
   useEffect(() => { setTimeout(() => setAnimated(true), 300) }, [])
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUserName(data.user?.user_metadata?.full_name ?? '')
+    supabase.auth.getSession().then(({ data }) => {
+      setUserName(data.session?.user?.user_metadata?.full_name ?? '')
     })
   }, [])
 

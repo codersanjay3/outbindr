@@ -27,7 +27,8 @@ export interface SessionRow {
 
 /** Fetch all sessions for a user (newest first) */
 export async function getSessions(): Promise<SessionRow[]> {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
   if (!user) return []
   const { data, error } = await supabase
     .from('sessions')
@@ -52,7 +53,8 @@ export async function getSessionById(id: string): Promise<SessionRow | null> {
 
 /** Create a blank draft session the moment the user starts a new session. */
 export async function createDraftSession(): Promise<SessionRow> {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
   if (!user) throw new Error('Not authenticated')
 
   // Don't include setup_state in insert — column may not exist yet on older schemas.
@@ -117,7 +119,8 @@ export async function createSession(
     return data as SessionRow
   }
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session: authSession } } = await supabase.auth.getSession()
+  const user = authSession?.user
   if (!user) throw new Error('Not authenticated')
 
   const { data, error } = await supabase
@@ -172,11 +175,11 @@ export async function deleteSession(sessionId: string): Promise<void> {
 /** Mark a session as publicly shareable and return the watch URL */
 export async function makeSessionPublic(sessionId: string): Promise<string> {
   // Embed ownerName into config so the public replay page can display it
-  const [{ data: { user } }, { data: current }] = await Promise.all([
-    supabase.auth.getUser(),
+  const [{ data: { session: authSession } }, { data: current }] = await Promise.all([
+    supabase.auth.getSession(),
     supabase.from('sessions').select('config').eq('id', sessionId).single(),
   ])
-  const ownerName = user?.user_metadata?.full_name ?? ''
+  const ownerName = authSession?.user?.user_metadata?.full_name ?? ''
   const mergedConfig = current?.config ? { ...current.config, ownerName } : { ownerName }
 
   const { error } = await supabase
