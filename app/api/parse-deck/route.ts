@@ -6,6 +6,13 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 
+function isPdf(file: File): boolean {
+  // Check MIME type AND filename — browsers don't always set type consistently
+  if (file.type === 'application/pdf') return true
+  if (file.name?.toLowerCase().endsWith('.pdf')) return true
+  return false
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData()
@@ -14,9 +21,12 @@ export async function POST(req: NextRequest) {
 
     let text: string
 
-    if (file.type === 'application/pdf') {
+    if (isPdf(file)) {
       const arrayBuffer = await file.arrayBuffer()
-      const pdfParse = (await import('pdf-parse')).default
+      // Import from the internal path to avoid pdf-parse's test-file loading
+      // issue that causes failures in Next.js App Router serverless environments
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfParse = require('pdf-parse/lib/pdf-parse.js')
       const pdfData  = await pdfParse(Buffer.from(arrayBuffer))
       text = pdfData.text
     } else {

@@ -19,9 +19,11 @@ Minimum 2, maximum 6 panelists.`
 
     let textContent: string
 
-    if (file.type === 'application/pdf') {
+    const isPdf = file.type === 'application/pdf' || file.name?.toLowerCase().endsWith('.pdf')
+    if (isPdf) {
       const arrayBuffer = await file.arrayBuffer()
-      const pdfParse = (await import('pdf-parse')).default
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfParse = require('pdf-parse/lib/pdf-parse.js')
       const pdfData = await pdfParse(Buffer.from(arrayBuffer))
       textContent = await client.createMessage(
         SYSTEM,
