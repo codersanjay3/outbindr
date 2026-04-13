@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
     round,
     totalRounds,
     isFirst,
+    pitchDeckText,
   }: {
     panelist: Panelist
     allPanelists: Panelist[]
@@ -22,6 +23,7 @@ export async function POST(req: NextRequest) {
     round: number
     totalRounds: number
     isFirst: boolean
+    pitchDeckText?: string
   } = await req.json()
 
   const othersDesc = allPanelists
@@ -32,7 +34,11 @@ export async function POST(req: NextRequest) {
   const isLastRound = round === totalRounds - 1
 
   // Tight prompt: 2-3 sentences + 1 question, nothing more
-  const system = `You are ${panelist.name}. ${panelist.role}
+  const deckContext = pitchDeckText
+    ? `\n\nSUPPORTING PITCH DECK:\n${pitchDeckText.slice(0, 2000)}`
+    : ''
+
+  const system = `You are ${panelist.name}. ${panelist.role}${deckContext}
 
 Panel peers:
 ${othersDesc}

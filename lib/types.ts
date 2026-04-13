@@ -79,4 +79,6 @@ export interface SimConfig {
   sessionName?:        string   // user-provided session title
   sessionDescription?: string  // user-provided description
   ownerName?:          string   // stored when session is made public
+  pitchDeckText?:      string   // extracted text from optional pitch deck upload
+  pitchDeckName?:      string   // filename of the uploaded pitch deck
 }

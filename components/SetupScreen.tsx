@@ -30,6 +30,12 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
   const [showKeys, setShowKeys]     = useState(false)
   const [showGuide, setShowGuide]   = useState(false)
 
+  // ── Pitch deck (optional context) ────────────────────────────────────────
+  const [pitchDeckFile, setPitchDeckFile]       = useState<File | null>(null)
+  const [pitchDeckText, setPitchDeckText]       = useState('')
+  const [pitchDeckParsing, setPitchDeckParsing] = useState(false)
+  const [pitchDeckError, setPitchDeckError]     = useState('')
+
   // ── Panel source toggle ────────────────────────────────────────────────
   const [panelSource, setPanelSource]   = useState<'upload' | 'template'>('upload')
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
@@ -96,6 +102,25 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
     setKeys(k)
   }
 
+  const handlePitchDeckFile = async (file: File) => {
+    setPitchDeckFile(file)
+    setPitchDeckText('')
+    setPitchDeckError('')
+    setPitchDeckParsing(true)
+    try {
+      const fd = new FormData()
+      fd.append('deck', file)
+      const res  = await fetch('/api/parse-deck', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      setPitchDeckText(data.text)
+    } catch {
+      setPitchDeckError('Could not read file. Try PDF, TXT, or MD.')
+    } finally {
+      setPitchDeckParsing(false)
+    }
+  }
+
   const handlePanelFile = async (file: File) => {
     setPanelFile(file)
     setPanelists([])
@@ -159,6 +184,8 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
       ideaDocName:        pitchMode === 'mic' ? 'Voice Pitch' : 'Written Pitch',
       sessionName:        sessionName.trim() || undefined,
       sessionDescription: sessionDescription.trim() || undefined,
+      pitchDeckText:      pitchDeckText || undefined,
+      pitchDeckName:      pitchDeckFile?.name || undefined,
     }
     onLaunch(cfg, null, ideaText)
   }
@@ -407,9 +434,43 @@ export default function SetupScreen({ onLaunch, onBack, onAutoSave }: Props) {
           </div>
         </section>
 
-        {/* ── [03] Rounds ── */}
+        {/* ── [03] Pitch Deck (optional context) ── */}
         <section className={styles.section}>
           <div className={styles.sectionNum}>03</div>
+          <div className={styles.sectionBody}>
+            <div className={styles.sectionTitle}>
+              Pitch Deck{' '}
+              <span style={{ fontSize: 10, fontWeight: 400, color: '#888', letterSpacing: '0.1em' }}>
+                OPTIONAL
+              </span>
+            </div>
+            <div className={styles.sectionHint}>
+              Upload a pitch deck or supporting document — panelists will reference it throughout the simulation
+            </div>
+            <DropZone
+              label="DROP PITCH DECK"
+              hint="PDF · TXT · MD"
+              onFile={handlePitchDeckFile}
+              fileName={pitchDeckFile?.name}
+            />
+            {pitchDeckParsing && (
+              <div className={styles.statusRow}>
+                <span className={styles.statusDots}><span /><span /><span /></span>
+                <span>Extracting deck content…</span>
+              </div>
+            )}
+            {pitchDeckError && <div className={styles.errorRow}>{pitchDeckError}</div>}
+            {pitchDeckText && !pitchDeckParsing && (
+              <div className={styles.statusRow} style={{ color: '#50a040' }}>
+                ✓ {pitchDeckFile?.name} — {Math.round(pitchDeckText.length / 5)} words extracted
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ── [04] Rounds ── */}
+        <section className={styles.section}>
+          <div className={styles.sectionNum}>04</div>
           <div className={styles.sectionBody}>
             <div className={styles.sectionTitle}>Simulation Rounds</div>
             <div className={styles.sectionHint}>

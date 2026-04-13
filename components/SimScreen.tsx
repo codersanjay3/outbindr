@@ -351,6 +351,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
                 panelist: p, allPanelists: panelists,
                 ideaText: ideaRef.current, history: historyRef.current,
                 round: r, totalRounds: rounds,
+                pitchDeckText: snapshotRef.current.config.pitchDeckText || undefined,
               }),
             })
             const { deliberation } = await dr.json()
@@ -380,6 +381,7 @@ export default function SimScreen({ config, ideaFile, ideaText, onVerdict, onPro
               ideaMimeType: ideaMimeRef.current || undefined,
               history: historyRef.current,
               round: r, totalRounds: rounds, isFirst,
+              pitchDeckText: snapshotRef.current.config.pitchDeckText || undefined,
             }),
           })
         } catch (e) {

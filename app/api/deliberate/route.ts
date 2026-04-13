@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     history,
     round,
     totalRounds,
+    pitchDeckText,
   }: {
     panelist: Panelist
     allPanelists: Panelist[]
@@ -28,6 +29,7 @@ export async function POST(req: NextRequest) {
     history: Message[]
     round: number
     totalRounds: number
+    pitchDeckText?: string
   } = await req.json()
 
   const others = allPanelists
@@ -55,9 +57,13 @@ ${isLastRound ? '4. Your tentative verdict (invest / pass / conditional) and why
     msgs.push({ role: m.role as 'user' | 'assistant', content: m.content })
   }
 
+  const deckSnippet = pitchDeckText
+    ? `\n\nPitch deck context:\n${pitchDeckText.slice(0, 1500)}`
+    : ''
+
   const context = ideaText
-    ? `Pitch summary:\n${ideaText.slice(0, 800)}`
-    : 'Review the transcript above.'
+    ? `Pitch summary:\n${ideaText.slice(0, 800)}${deckSnippet}`
+    : `Review the transcript above.${deckSnippet}`
 
   msgs.push({ role: 'user', content: `${context}\n\nShare your internal deliberation now.` })
 
