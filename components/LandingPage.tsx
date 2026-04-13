@@ -1,7 +1,8 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import AuthModal from './AuthModal'
 import { ContainerScroll } from './ui/container-scroll-animation'
+import { Carousel, CarouselContent, CarouselNavigation, CarouselIndicator, CarouselItem } from '@/components/ui/carousel'
 import styles from './LandingPage.module.css'
 
 interface Props {
@@ -123,25 +124,7 @@ function AppPreview() {
 }
 
 export default function LandingPage({ onEnterApp }: Props) {
-  const [showAuth, setShowAuth]       = useState(false)
-  const [visibleFeats, setVisibleFeat] = useState<boolean[]>(Array(FEATURES.length).fill(false))
-  const featureRefs  = useRef<(HTMLDivElement | null)[]>([])
-
-  useEffect(() => {
-    const onScroll = () => {
-      featureRefs.current.forEach((el, i) => {
-        if (el) {
-          const r = el.getBoundingClientRect()
-          if (r.top < window.innerHeight * 0.88) {
-            setVisibleFeat(prev => { const n = [...prev]; n[i] = true; return n })
-          }
-        }
-      })
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+  const [showAuth, setShowAuth] = useState(false)
 
   return (
     <div className={styles.wrap}>
@@ -208,19 +191,39 @@ export default function LandingPage({ onEnterApp }: Props) {
         <div className={styles.featuresInner}>
           <div className={styles.sectionEye}>WHAT YOU GET</div>
           <h2 className={styles.sectionTitle}>Everything a real evaluation room has.</h2>
-          <div className={styles.featureGrid}>
-            {FEATURES.map((f, i) => (
-              <div
-                key={i}
-                className={`${styles.featureCard} ${visibleFeats[i] ? styles.featureCardVisible : ''}`}
-                ref={el => { featureRefs.current[i] = el }}
-                style={{ transitionDelay: `${(i % 3) * 80}ms` }}
-              >
-                <div className={styles.featureNum}>{f.n}</div>
-                <div className={styles.featureTitle}>{f.title}</div>
-                <div className={styles.featureBody}>{f.body}</div>
-              </div>
-            ))}
+          <div style={{ position: 'relative', marginTop: 32, paddingBottom: 56 }}>
+            <Carousel>
+              <CarouselContent>
+                {FEATURES.map((f, i) => (
+                  <CarouselItem key={i}>
+                    <div style={{
+                      padding: '48px 40px',
+                      border: '1px solid #e8e8e8',
+                      minHeight: 240,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 16,
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      userSelect: 'none' as const,
+                      background: '#fff',
+                    }}>
+                      <div style={{ fontSize: 10, color: '#bbb', letterSpacing: '0.2em', fontWeight: 700 }}>{f.n}</div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: '#000', letterSpacing: '-0.01em', lineHeight: 1.2 }}>{f.title}</div>
+                      <div style={{ fontSize: 13, color: '#555', lineHeight: 1.7, maxWidth: 580 }}>{f.body}</div>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselNavigation
+                className='absolute -bottom-2 left-auto top-auto w-full justify-end gap-2'
+                classNameButton='bg-black *:stroke-white disabled:opacity-30'
+                alwaysShow
+              />
+              <CarouselIndicator
+                className='relative mt-4 bottom-auto'
+                classNameButton='bg-black'
+              />
+            </Carousel>
           </div>
         </div>
       </section>
